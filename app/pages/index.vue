@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { showTheAfters, eventName } = useEventBranding()
+
 const registered = ref(false)
 const loading = ref(false)
 
@@ -26,13 +28,13 @@ const galleryImages = [
 </script>
 
 <template>
-  <div class="relative overflow-hidden bg-gray-950 min-h-screen">
+  <div class="relative overflow-x-hidden bg-gray-950 min-h-screen">
     <!-- Background Glows -->
     <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-500/10 blur-[120px] rounded-full" />
     <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent-500/10 blur-[120px] rounded-full" />
 
     <!-- Hero Section -->
-    <section class="relative isolate min-h-screen flex items-center">
+    <section class="relative isolate flex min-h-hero items-center py-16 sm:py-20">
       <!-- Outside hero image (pre-rotated + optimized) -->
       <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <picture>
@@ -61,12 +63,27 @@ const galleryImages = [
             Registration Open
           </div>
 
-          <h1 class="text-5xl md:text-7xl font-black tracking-tight mb-6 glow-text">
-            THE <span class="text-primary-500">AFTERS</span>
-          </h1>
+          <div class="min-h-[4.5rem] sm:min-h-[5.5rem] md:min-h-[6.5rem] lg:min-h-[7rem] flex items-center justify-center mb-6">
+            <Transition name="brand-fade" mode="out-in">
+              <div
+                v-if="showTheAfters"
+                key="the-afters"
+                class="glow-text text-5xl md:text-7xl font-black tracking-tight"
+              >
+                THE <span class="text-primary-500">AFTERS</span>
+              </div>
+              <div
+                v-else
+                key="harrys"
+                class="glow-text text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-primary-500 max-w-4xl mx-auto leading-[1.1] px-2"
+              >
+                Afters at Harry's
+              </div>
+            </Transition>
+          </div>
 
           <p class="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto mb-10 leading-relaxed">
-            The Afters is gonna be sick — everyone’s gonna be there.
+            <span class="font-semibold text-white">{{ eventName }}</span> is gonna be sick — everyone’s gonna be there.
             <span class="block mt-2 font-semibold text-white">Fairfax Year 13 Prom After Party.</span>
           </p>
 
@@ -97,7 +114,9 @@ const galleryImages = [
     <section id="what-is-it" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <div class="grid md:grid-cols-2 gap-12 items-center">
         <div class="space-y-8">
-          <h2 class="text-3xl md:text-4xl font-bold">What is The Afters?</h2>
+          <h2 class="text-3xl md:text-4xl font-bold">
+            What is {{ eventName }}?
+          </h2>
           <p class="text-lg text-gray-400 leading-relaxed">
             It's the only way to end prom night. We're taking over a field, setting up the lights, and keeping the energy high until the sun comes up. 
           </p>
@@ -145,6 +164,9 @@ const galleryImages = [
     <section id="register" class="py-24 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
       <div class="text-center mb-12">
         <h2 class="text-4xl font-black mb-4">REGISTER YOUR INTEREST</h2>
+        <p class="text-gray-400 mb-2">
+          For <span class="text-white font-semibold">{{ eventName }}</span> — tell us you’re in.
+        </p>
         <p class="text-gray-400">
           At the moment you can <span class="text-white font-bold">ONLY</span> register interest. Tickets are <span class="text-white font-bold">NOT</span> on sale yet. 
           The more people who sign up, the more likely we can make it happen.
@@ -178,7 +200,7 @@ const galleryImages = [
         <UIcon name="i-lucide-check-circle" class="w-16 h-16 text-primary-500 mx-auto mb-4" />
         <h3 class="text-2xl font-bold mb-2">You're on the list!</h3>
         <p class="text-gray-400">
-          Thanks {{ form.name.split(' ')[0] }}! We'll email you at {{ form.email }} as soon as tickets go live.
+          Thanks {{ form.name.split(' ')[0] }}! We'll email you at {{ form.email }} as soon as tickets go live for {{ eventName }}.
         </p>
         <UButton variant="ghost" class="mt-6" @click="registered = false">Back</UButton>
       </div>
@@ -234,5 +256,15 @@ const galleryImages = [
     radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.10), transparent 55%),
     radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.06), transparent 60%),
     repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px);
+}
+
+.brand-fade-enter-active,
+.brand-fade-leave-active {
+  transition: opacity 0.35s ease;
+}
+
+.brand-fade-enter-from,
+.brand-fade-leave-to {
+  opacity: 0;
 }
 </style>

@@ -30,8 +30,21 @@
 }
 
 @layer base {
+  html {
+    scroll-padding-top: 1rem;
+  }
+
   body {
     @apply bg-gray-950 text-gray-100;
+  }
+}
+
+@layer utilities {
+  /* Stable full-viewport hero on mobile (vh vs URL bar) + hash-scroll back to top */
+  .min-h-hero {
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
   }
 }
 
