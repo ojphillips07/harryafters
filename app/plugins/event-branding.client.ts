@@ -1,8 +1,10 @@
-export default defineNuxtPlugin(() => {
-  const showTheAfters = useState('afters-brand-toggle', () => true)
+import { EVENT_BRAND_NAMES } from '~/composables/useEventBranding'
 
-  const intervalMs = 4500
+export default defineNuxtPlugin(() => {
+  const brandIndex = useState('afters-brand-index', () => 0)
+
+  const intervalMs = 2200
   globalThis.setInterval(() => {
-    showTheAfters.value = !showTheAfters.value
+    brandIndex.value = (brandIndex.value + 1) % EVENT_BRAND_NAMES.length
   }, intervalMs)
 })

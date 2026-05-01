@@ -13,8 +13,8 @@ useHead({
   }
 })
 
-const title = 'The Afters · Afters at Harry\'s | Fairfax Year 13 Prom After Party'
-const description = 'Same night — two names: The Afters and Afters at Harry\'s. Everyone’s gonna be there. Register your interest for the Fairfax Year 13 Prom After Party.'
+const title = 'Fairfax Afters · The After Party · The Afters | Year 13 Prom After Party'
+const description = 'The Afters, Afters at Harry\'s, Fairfax Afters, The After Party — same night. Everyone’s gonna be there. Register your interest for the Fairfax Year 13 prom after party.'
 
 useSeoMeta({
   title,

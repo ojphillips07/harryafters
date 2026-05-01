@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { showTheAfters, eventName } = useEventBranding()
+const { brandIndex, eventName } = useEventBranding()
 
 const registered = ref(false)
 const loading = ref(false)
@@ -63,21 +63,13 @@ const galleryImages = [
             Registration Open
           </div>
 
-          <div class="min-h-[4.5rem] sm:min-h-[5.5rem] md:min-h-[6.5rem] lg:min-h-[7rem] flex items-center justify-center mb-6">
+          <div class="min-h-[5rem] sm:min-h-[6rem] md:min-h-[7rem] lg:min-h-[7.5rem] flex items-center justify-center mb-6">
             <Transition name="brand-fade" mode="out-in">
               <div
-                v-if="showTheAfters"
-                key="the-afters"
-                class="glow-text text-5xl md:text-7xl font-black tracking-tight"
+                :key="brandIndex"
+                class="glow-text text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-primary-500 max-w-4xl mx-auto leading-[1.12] px-2"
               >
-                THE <span class="text-primary-500">AFTERS</span>
-              </div>
-              <div
-                v-else
-                key="harrys"
-                class="glow-text text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-primary-500 max-w-4xl mx-auto leading-[1.1] px-2"
-              >
-                Afters at Harry's
+                {{ eventName }}
               </div>
             </Transition>
           </div>
