@@ -46,8 +46,8 @@ const DEFAULT_CHECKOUT_TOTAL_PENCE = 630
  * Entry ticket + booking fee line items.
  *
  * Prefer `NUXT_CHECKOUT_TOTAL_PENCE` (e.g. 630 = £6.30 all-in); entry is computed as total − fee.
- * Legacy: `NUXT_TICKET_PRICE_PENCE` (entry only, e.g. 600) + fee — never put 630 in the entry field
- * (that is the full total in pence and adds the fee twice → £6.60).
+ * Legacy `NUXT_TICKET_PRICE_PENCE`: normally entry only (e.g. 600). If it is 630 with a 30p fee, we treat
+ * that as “full total in wrong variable” (same as checkout total 630) so you get £6.30 not £6.60.
  */
 export function getCheckoutLineAmounts(): {
   entryPence: number
@@ -78,14 +78,17 @@ export function getCheckoutLineAmounts(): {
     }
   } else if (Number.isFinite(ticketParsed) && ticketParsed >= 1) {
     if (ticketParsed === 630 && bookingPence === 30) {
-      throw createError({
-        statusCode: 500,
-        statusMessage:
-          'NUXT_TICKET_PRICE_PENCE is 630 — that number is the full £6.30 total in pence, not the entry line. Use NUXT_CHECKOUT_TOTAL_PENCE=630 (recommended) or NUXT_TICKET_PRICE_PENCE=600 so the total stays £6.30, not £6.60.'
-      })
+      totalPence = DEFAULT_CHECKOUT_TOTAL_PENCE
+      entryPence = totalPence - bookingPence
+      if (import.meta.dev) {
+        console.warn(
+          '[HarryAfters pricing] NUXT_TICKET_PRICE_PENCE=630 with 30p fee is treated as £6.30 total (£6.00 entry). Prefer NUXT_CHECKOUT_TOTAL_PENCE=630 and leave NUXT_TICKET_PRICE_PENCE unset.'
+        )
+      }
+    } else {
+      entryPence = ticketParsed
+      totalPence = entryPence + bookingPence
     }
-    entryPence = ticketParsed
-    totalPence = entryPence + bookingPence
   } else {
     totalPence = DEFAULT_CHECKOUT_TOTAL_PENCE
     entryPence = totalPence - bookingPence
