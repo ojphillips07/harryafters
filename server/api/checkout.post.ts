@@ -72,8 +72,9 @@ export default defineEventHandler(async (event) => {
             currency: 'gbp',
             unit_amount: entryPence,
             product_data: {
-              name: 'Harry Afters — entry ticket',
-              description: 'Year 13 prom after party at Harry’s. One person, one ticket.'
+              name: 'Entry ticket',
+              description:
+                `Harry Afters — Year 13 prom after party. ${fmt(entryPence)} toward your ${fmt(totalPence)} total (booking fee is the next line). One person, one ticket.`
             }
           }
         },
@@ -83,8 +84,9 @@ export default defineEventHandler(async (event) => {
             currency: 'gbp',
             unit_amount: bookingPence,
             product_data: {
-              name: 'Card processing & booking charge',
-              description: `Non-refundable fee (${fmt(bookingPence)}) — covers secure payment handling.`
+              name: 'Booking & card fee (separate charge)',
+              description:
+                `Non-refundable ${fmt(bookingPence)} — shown separately from entry so it’s clear. Your full payment today is ${fmt(totalPence)} (${fmt(entryPence)} + ${fmt(bookingPence)}).`
             }
           }
         }
@@ -100,7 +102,7 @@ export default defineEventHandler(async (event) => {
       custom_text: {
         submit: {
           message:
-            `Total ${fmt(totalPence)} includes ${fmt(bookingPence)} booking charge (shown above). BYOB on the night — see site for details.`
+            `You pay ${fmt(totalPence)} once — that’s ${fmt(entryPence)} entry plus ${fmt(bookingPence)} booking fee as two lines above. BYOB on the night — see site for details.`
         }
       },
       metadata: {

@@ -101,15 +101,21 @@ const onBuy = async () => {
               <span class="shrink-0 font-semibold text-white tabular-nums">{{ pricing.labels.entry }}</span>
             </div>
             <div class="flex justify-between gap-4 pt-3">
-              <span class="text-gray-400">Booking charge <span class="text-gray-500">(card processing)</span></span>
+              <span class="text-gray-400">
+                Booking and card fee <span class="text-gray-500">(separate line — not hidden in the ticket price)</span>
+              </span>
               <span class="shrink-0 font-semibold text-primary-300 tabular-nums">{{ pricing.labels.booking }}</span>
             </div>
             <div class="mt-4 flex justify-between gap-4 border-t border-gray-800 pt-3 text-base">
-              <span class="font-bold text-white">Total due</span>
+              <span class="font-bold text-white">Total you pay</span>
               <span class="shrink-0 font-black text-primary-400 tabular-nums">{{ pricing.labels.total }}</span>
             </div>
-            <p class="mt-3 text-xs leading-snug text-gray-500">
-              Stripe shows the same split on the payment page — pink button, dark theme, Harry Afters branding.
+            <p class="mt-3 text-xs leading-snug text-gray-400">
+              One payment of {{ pricing.labels.total }}: that total includes both lines above — {{ pricing.labels.entry }} entry plus {{ pricing.labels.booking }} fee.
+              Stripe Checkout lists them separately so the fee stays obvious.
+            </p>
+            <p class="mt-2 text-xs leading-snug text-gray-500">
+              Same breakdown on the hosted payment page — pink button, dark theme, Harry Afters branding.
             </p>
           </div>
         </div>
