@@ -1,12 +1,14 @@
 <script setup>
-const { eventName } = useEventBranding()
-
 useHead({
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' }
   ],
   link: [
-    { rel: 'icon', href: '/favicon.ico' }
+    { rel: 'icon', href: '/favicon.ico' },
+    {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@700;800&family=Syne:wght@700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap'
+    }
   ],
   htmlAttrs: {
     lang: 'en'
@@ -34,8 +36,9 @@ useSeoMeta({
     <UFooter class="border-t border-gray-800 bg-gray-950/50 backdrop-blur-md py-8">
       <template #left>
         <div class="flex flex-col gap-2">
-          <p class="text-sm text-gray-400">
-            {{ eventName }} • Fairfax Year 13 Prom After Party
+          <p class="text-sm text-gray-400 flex flex-wrap items-baseline gap-x-1">
+            <EventBrandName typography="inherit" />
+            <span>• Fairfax Year 13 Prom After Party</span>
           </p>
           <p class="text-xs text-gray-500">
             © {{ new Date().getFullYear() }} • Non-profit event

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { brandIndex, eventName } = useEventBranding()
+const { brandIndex } = useEventBranding()
 
 const registered = ref(false)
 const loading = ref(false)
@@ -67,15 +67,15 @@ const galleryImages = [
             <Transition name="brand-fade" mode="out-in">
               <div
                 :key="brandIndex"
-                class="glow-text text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-primary-500 max-w-4xl mx-auto leading-[1.12] px-2"
+                class="max-w-4xl mx-auto px-2 text-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-[1.12]"
               >
-                {{ eventName }}
+                <EventBrandName typography="hero" />
               </div>
             </Transition>
           </div>
 
           <p class="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto mb-10 leading-relaxed">
-            <span class="font-semibold text-white">{{ eventName }}</span> is gonna be sick — everyone’s gonna be there.
+            <span class="font-semibold"><EventBrandName typography="inherit" /></span> is gonna be sick — everyone’s gonna be there.
             <span class="block mt-2 font-semibold text-white">Fairfax Year 13 Prom After Party.</span>
           </p>
 
@@ -107,7 +107,7 @@ const galleryImages = [
       <div class="grid md:grid-cols-2 gap-12 items-center">
         <div class="space-y-8">
           <h2 class="text-3xl md:text-4xl font-bold">
-            What is {{ eventName }}?
+            What is <EventBrandName typography="inherit" />?
           </h2>
           <p class="text-lg text-gray-400 leading-relaxed">
             It's the only way to end prom night. We're taking over a field, setting up the lights, and keeping the energy high until the sun comes up. 
@@ -157,7 +157,7 @@ const galleryImages = [
       <div class="text-center mb-12">
         <h2 class="text-4xl font-black mb-4">REGISTER YOUR INTEREST</h2>
         <p class="text-gray-400 mb-2">
-          For <span class="text-white font-semibold">{{ eventName }}</span> — tell us you’re in.
+          For <span class="font-semibold"><EventBrandName typography="inherit" /></span> — tell us you’re in.
         </p>
         <p class="text-gray-400">
           At the moment you can <span class="text-white font-bold">ONLY</span> register interest. Tickets are <span class="text-white font-bold">NOT</span> on sale yet. 
@@ -192,7 +192,7 @@ const galleryImages = [
         <UIcon name="i-lucide-check-circle" class="w-16 h-16 text-primary-500 mx-auto mb-4" />
         <h3 class="text-2xl font-bold mb-2">You're on the list!</h3>
         <p class="text-gray-400">
-          Thanks {{ form.name.split(' ')[0] }}! We'll email you at {{ form.email }} as soon as tickets go live for {{ eventName }}.
+          Thanks {{ form.name.split(' ')[0] }}! We'll email you at {{ form.email }} as soon as tickets go live for <EventBrandName typography="inherit" />.
         </p>
         <UButton variant="ghost" class="mt-6" @click="registered = false">Back</UButton>
       </div>
