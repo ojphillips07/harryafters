@@ -88,12 +88,18 @@ const galleryImages = [
 
       <div class="w-full px-4 sm:px-6 lg:px-10">
         <div class="max-w-4xl mx-auto text-center">
-          <div class="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium backdrop-blur">
-            <span class="relative flex h-2 w-2">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
-            </span>
-            Registration Open
+          <div class="mb-6 flex flex-wrap items-center justify-center gap-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium backdrop-blur">
+              <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
+              </span>
+              Registration Open
+            </div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-950/40 border border-white/15 text-gray-200 text-sm font-semibold backdrop-blur">
+              <span class="inline-flex rounded-full h-2 w-2 bg-accent-500"></span>
+              <span><span class="text-white font-black">25 June</span> · Starts <span class="text-white font-black">10pm</span></span>
+            </div>
           </div>
 
           <HeroRollingCube />

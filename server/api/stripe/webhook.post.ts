@@ -152,6 +152,10 @@ export default defineEventHandler(async (event) => {
           filename: 'ticket-qr.png',
           content: qrPng,
           contentId: 'ticket-qr'
+        },
+        {
+          filename: 'harry-afters-ticket-qr.png',
+          content: qrPng
         }
       ]
     })

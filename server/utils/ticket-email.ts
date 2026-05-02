@@ -38,6 +38,7 @@ export function ticketEmailContent(input: TicketEmailInput): {
   const text = `Hi ${input.name.trim() || 'there'},
 
 You're in. This email is your ticket to Harry Afters.
+25 June. Starts 10pm.
 
 Show the QR code at the door. Door staff will scan it once.
 
@@ -45,6 +46,7 @@ Ticket ID: ${input.ticketId}
 Paid: ${price}
 
 Lost this email? Open: ${input.ticketUrl}
+Save QR: ${input.ticketUrl} (tap “Save QR to camera roll”)
 
 — Harry Afters`
 
@@ -63,6 +65,7 @@ Lost this email? Open: ${input.ticketUrl}
       <td style="padding:4px 28px 20px;">
         <p style="margin:0;font-family:${fontSans};font-size:15px;line-height:1.55;color:${C.muted};">
           <strong style="color:${C.text};font-weight:700;">Harry Afters</strong> — Year 13 prom after party at Harry’s.
+          <span style="display:block;margin-top:6px;color:${C.text};font-weight:700;">25 June · Starts 10pm.</span>
         </p>
       </td>
     </tr>
@@ -116,6 +119,9 @@ Lost this email? Open: ${input.ticketUrl}
         <p style="margin:0;font-family:${fontSans};font-size:13px;line-height:1.6;color:${C.muted};">
           Save this email. If you lose it, you can re-open your ticket here:
           <a href="${safeUrl}" style="color:${C.primary300};text-decoration:underline;">${safeUrl}</a>
+        </p>
+        <p style="margin:10px 0 0;font-family:${fontSans};font-size:13px;line-height:1.6;color:${C.muted};">
+          Want it in your camera roll? Open that link and tap <strong style="color:${C.text};font-weight:700;">Save QR to camera roll</strong>.
         </p>
       </td>
     </tr>

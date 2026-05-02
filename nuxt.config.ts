@@ -29,6 +29,7 @@ export default defineNuxtConfig({
     ticketPricePence: '',
     /** Booking fee in pence (separate Stripe line). Default 30p. */
     bookingFeePence: '30',
+
     public: {
       /** Public site origin used for Stripe success/cancel URLs and ticket links. */
       siteUrl: ''

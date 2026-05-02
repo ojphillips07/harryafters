@@ -89,6 +89,7 @@ const onBuy = async () => {
           </h1>
           <p class="mt-3 text-base md:text-lg text-gray-300 leading-relaxed">
             Year 13 prom after party at <span class="font-semibold text-white">Harry's</span>.
+            <span class="text-white font-semibold">25 June · starts 10pm.</span>
             We'll email your ticket the second payment clears.
           </p>
 

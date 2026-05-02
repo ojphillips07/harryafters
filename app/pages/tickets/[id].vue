@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import QRCode from 'qrcode'
-
 definePageMeta({ layout: false })
 
 const route = useRoute()
@@ -26,24 +24,7 @@ useHead({
     ticket.value ? `Your ticket — Harry Afters` : 'Ticket not found — Harry Afters'
 })
 
-const qrDataUrl = ref<string>('')
-
-watchEffect(async () => {
-  if (!ticket.value?.id) {
-    qrDataUrl.value = ''
-    return
-  }
-  try {
-    qrDataUrl.value = await QRCode.toDataURL(ticket.value.id, {
-      errorCorrectionLevel: 'M',
-      margin: 1,
-      scale: 8,
-      color: { dark: '#0f172a', light: '#ffffff' }
-    })
-  } catch {
-    qrDataUrl.value = ''
-  }
-})
+const qrPngUrl = computed(() => ticket.value?.id ? `/api/tickets/${ticket.value.id}/qr.png` : '')
 
 const priceLabel = computed(() => {
   if (!ticket.value) return ''
@@ -122,8 +103,8 @@ const usedAtLabel = computed(() => {
 
             <div class="mt-6 rounded-2xl bg-white p-4 flex items-center justify-center">
               <img
-                v-if="qrDataUrl"
-                :src="qrDataUrl"
+                v-if="qrPngUrl"
+                :src="qrPngUrl"
                 :alt="`QR for ticket ${ticket.id}`"
                 class="block w-60 h-60"
                 width="240"
@@ -139,6 +120,18 @@ const usedAtLabel = computed(() => {
             <p class="mt-3 text-center text-sm text-gray-400">
               Show this at the door. One scan only.
             </p>
+
+            <div class="mt-4 grid grid-cols-1 gap-3">
+              <a
+                v-if="qrPngUrl"
+                :href="qrPngUrl"
+                download="harry-afters-ticket-qr.png"
+                class="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary-500/15 border border-primary-500/35 px-4 py-3 text-sm font-bold text-primary-200 hover:bg-primary-500/20 transition-colors"
+              >
+                <UIcon name="i-lucide-download" class="w-4 h-4" />
+                Save QR to camera roll
+              </a>
+            </div>
 
             <div class="mt-6 grid grid-cols-2 gap-4 pt-4 border-t border-gray-800">
               <div>
