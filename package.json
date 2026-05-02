@@ -13,8 +13,13 @@
   "dependencies": {
     "@iconify-json/lucide": "^1.2.104",
     "@iconify-json/simple-icons": "^1.2.80",
+    "@supabase/supabase-js": "^2.105.1",
+    "jsqr": "^1.4.0",
     "nuxt": "^4.4.2",
+    "qrcode": "^1.5.4",
+    "resend": "^6.12.2",
     "sharp": "^0.34.5",
+    "stripe": "^22.1.0",
     "tailwindcss": "^4.2.4"
   },
   "devDependencies": {

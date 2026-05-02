@@ -1,46 +1,81 @@
 <script setup lang="ts">
+function getRegisterErrorMessage(err: unknown): string {
+  if (typeof err === 'object' && err !== null) {
+    const e = err as Record<string, unknown>
+    const data = e.data as Record<string, unknown> | undefined
+    const msg
+      = (data?.statusMessage as string | undefined)
+        || (data?.message as string | undefined)
+        || (e.statusMessage as string | undefined)
+        || (e.message as string | undefined)
+    if (msg && typeof msg === 'string') return msg
+  }
+  return 'Something went wrong. Please try again.'
+}
+
 const registered = ref(false)
 const loading = ref(false)
+const errorMessage = ref<string | null>(null)
+const alreadyRegistered = ref(false)
 
 const form = reactive({
   name: '',
-  email: ''
+  email: '',
+  /* Honeypot — must stay empty. Obscure name so browsers don’t autofill it. */
+  fax_extension: ''
 })
 
 const onRegister = async () => {
   loading.value = true
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  loading.value = false
-  registered.value = true
+  errorMessage.value = null
+  try {
+    const result = await $fetch<{ ok: boolean; alreadyRegistered: boolean }>(
+      '/api/register-interest',
+      {
+        method: 'POST',
+        body: {
+          name: form.name,
+          email: form.email,
+          fax_extension: form.fax_extension
+        }
+      }
+    )
+    alreadyRegistered.value = result.alreadyRegistered
+    registered.value = true
+  } catch (err: unknown) {
+    errorMessage.value = getRegisterErrorMessage(err)
+  } finally {
+    loading.value = false
+  }
 }
 
 const galleryImages = [
-  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&q=80&w=800',
-  'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=800',
-  'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=800',
-  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=800',
-  'https://images.unsplash.com/photo-1514525253361-bee8a187499b?auto=format&fit=crop&q=80&w=800',
-  'https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&q=80&w=800'
-]
+  { src: '/images/venue-pergola.png', alt: 'Garden pergola at dusk, warmly lit' },
+  { src: '/images/venue-cabin.png', alt: 'Harry’s garden cabin at night with lights on' },
+  { src: '/images/venue-lawn.png', alt: 'Lawns and trees at Harry’s after dark' }
+] as const
 </script>
 
 <template>
-  <div class="relative overflow-x-hidden bg-gray-950 min-h-screen">
-    <!-- Background Glows -->
-    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-500/10 blur-[120px] rounded-full" />
-    <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent-500/10 blur-[120px] rounded-full" />
+  <div class="relative overflow-clip bg-gray-950">
+    <!-- Background glows: keep inside layout box (no negative offsets) so they don’t extend document scroll past the footer -->
+    <div
+      class="pointer-events-none absolute -left-[20%] -top-[20%] h-[60%] w-[60%] bg-primary-500/10 blur-[120px] rounded-full"
+    />
+    <div
+      class="pointer-events-none absolute -right-[20%] -bottom-[20%] h-[60%] w-[60%] bg-accent-500/10 blur-[120px] rounded-full"
+    />
 
     <!-- Hero Section -->
     <section class="relative isolate flex min-h-hero items-center py-16 sm:py-20">
       <!-- Outside hero image (pre-rotated + optimized) -->
       <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <picture>
-          <source srcset="/images/hero-outside.webp" type="image/webp">
+          <source srcset="/images/hero-venue.webp" type="image/webp">
           <img
-            src="/images/hero-outside.jpg"
-            alt="A field at sunset"
-            class="absolute inset-0 h-full w-full object-cover object-[50%_80%]"
+            src="/images/hero-venue.jpg"
+            alt="Harry’s garden cabin at night, lit up for the after party"
+            class="absolute inset-0 h-full w-full object-cover object-[50%_55%]"
             decoding="async"
             fetchpriority="high"
           >
@@ -63,9 +98,12 @@ const galleryImages = [
 
           <HeroRollingCube />
 
-          <p class="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto mb-10 leading-relaxed">
-            <span class="font-semibold"><EventBrandName typography="inherit" /></span> is gonna be sick — everyone’s gonna be there.
+          <p class="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto mb-4 leading-relaxed">
+            <span class="font-semibold"><EventBrandName typography="inherit" stable /></span> is gonna be sick — everyone’s gonna be there.
             <span class="block mt-2 font-semibold text-white">Fairfax Year 13 Prom After Party.</span>
+          </p>
+          <p class="text-base md:text-lg text-primary-200/95 max-w-xl mx-auto mb-10 leading-snug">
+            Planning on coming? <span class="font-semibold text-white">Register your interest</span> — it’s how you’ll get access to a ticket when they go on sale.
           </p>
 
           <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -99,30 +137,32 @@ const galleryImages = [
             What is <EventBrandName typography="inherit" />?
           </h2>
           <p class="text-lg text-gray-400 leading-relaxed">
-            It's the only way to end prom night. We're taking over a field, setting up the lights, and keeping the energy high until the sun comes up. 
+            We’re taking over Harry’s — lights, music, and drinks. Ticket money goes towards setup (lights, sound, cleanup, etc.); anything left over gets spent on <span class="text-gray-200 font-medium">free drinks</span> on the night. We’re operating <span class="text-gray-200 font-medium">bring your own drinks (BYOB)</span> too — bring what you want to sip, and we’ll put the cash towards running the party and extra free pours where we can.
           </p>
-          
+
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div class="p-6 rounded-2xl bg-gray-900/50 border border-gray-800 glow-box">
               <UIcon name="i-lucide-users" class="w-8 h-8 text-primary-500 mb-4" />
               <h3 class="font-bold mb-2">Everyone's Invited</h3>
-              <p class="text-sm text-gray-500">The whole of Year 13 coming together for one last night.</p>
+              <p class="text-sm text-gray-500">The whole of Year 13 — one last big night at Harry’s.</p>
             </div>
             <div class="p-6 rounded-2xl bg-gray-900/50 border border-gray-800 glow-box">
-              <UIcon name="i-lucide-heart" class="w-8 h-8 text-accent-500 mb-4" />
-              <h3 class="font-bold mb-2">Non-Profit</h3>
-              <p class="text-sm text-gray-500">Every penny goes into the party or free drinks for you.</p>
+              <UIcon name="i-lucide-beer" class="w-8 h-8 text-accent-500 mb-4" />
+              <h3 class="font-bold mb-2">BYOB</h3>
+              <p class="text-sm text-gray-500">Bring your own drinks. Ticket cash covers setup; surplus goes on free drinks.</p>
             </div>
           </div>
         </div>
         
         <div class="relative group">
           <div class="absolute -inset-1 bg-gradient-to-r from-primary-500 to-accent-500 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-          <img 
-            src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&q=80&w=1200" 
-            alt="Party vibes" 
+          <img
+            src="/images/venue-pergola.png"
+            alt="Garden pergola and seating at Harry’s"
             class="relative rounded-3xl object-cover aspect-video shadow-2xl"
-          />
+            loading="lazy"
+            decoding="async"
+          >
         </div>
       </div>
     </section>
@@ -130,12 +170,18 @@ const galleryImages = [
     <!-- Pricing / Non-Profit Section -->
     <section class="py-24 bg-gray-900/30 border-y border-gray-900">
       <div class="max-w-4xl mx-auto px-4 text-center">
-        <h2 class="text-3xl font-bold mb-6">Keeping it Real</h2>
+        <h2 class="text-3xl font-bold mb-6">Not asking for much</h2>
         <div class="p-8 rounded-3xl bg-gray-950 border border-primary-500/20 glow-box">
           <p class="text-xl md:text-2xl font-medium mb-4">Tickets will be around <span class="text-primary-500 font-black">£5–£6</span></p>
           <p class="text-gray-400 leading-relaxed">
-            We're not here to make money. All revenue goes towards setup costs (generators, lights, sound, etc.). 
-            <span class="text-white font-semibold">Any excess money will be spent on free drinks for everyone.</span>
+            We’re taking over Harry’s — lights, music, and drinks. Everything from ticket sales goes towards <span class="text-white font-semibold">setup</span>: lights, sound, cleanup, etc.
+            <span class="text-white font-semibold"> Any money left after that goes on free drinks</span> for everyone on the night.
+          </p>
+          <p class="mt-4 text-gray-400 leading-relaxed">
+            <span class="text-white font-semibold">Bring your own drinks (BYOB)</span> — that’s how we’re running it. Bring what you want; we’re not trying to profit, just cover the party and stretch to free drinks where we can.
+          </p>
+          <p class="mt-6 text-sm text-gray-500 leading-relaxed border-t border-gray-800 pt-6">
+            Tickets won’t be sold blindly — <span class="text-gray-300">register your interest</span> so we know you’re coming and can reach you when it’s time to buy.
           </p>
         </div>
       </div>
@@ -143,13 +189,13 @@ const galleryImages = [
 
     <!-- Registration Section -->
     <section id="register" class="py-24 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
-      <div class="text-center mb-12">
-        <h2 class="text-4xl font-black mb-4">REGISTER YOUR INTEREST</h2>
-        <p class="text-gray-400 mb-2">
-          For <span class="font-semibold"><EventBrandName typography="inherit" /></span> — tell us you’re in.
+      <div class="text-center mb-12 space-y-4">
+        <h2 class="text-4xl font-black mb-2">REGISTER YOUR INTEREST</h2>
+        <p class="text-lg text-gray-100 font-medium max-w-2xl mx-auto">
+          If you plan on attending, you need to register here — this list is how we’ll contact you when tickets go live. Skip this step and you risk missing out.
         </p>
         <p class="text-gray-400">
-          At the moment you can <span class="text-white font-bold">ONLY</span> register interest. Tickets are <span class="text-white font-bold">NOT</span> on sale yet. 
+          For <span class="font-semibold text-gray-200"><EventBrandName typography="inherit" /></span>. Right now you can only register interest — tickets <span class="text-white font-semibold">aren’t on sale yet</span>.
           The more people who sign up, the more likely we can make it happen.
         </p>
       </div>
@@ -159,10 +205,24 @@ const galleryImages = [
           <UFormField label="Full Name" name="name">
             <UInput v-model="form.name" placeholder="John Doe" size="xl" class="w-full" required />
           </UFormField>
-          
-          <UFormField label="School Email" name="email">
-            <UInput v-model="form.email" type="email" placeholder="student@fairfax.school" size="xl" class="w-full" required />
+
+          <UFormField label="Email" name="email">
+            <UInput v-model="form.email" type="email" placeholder="you@example.com" size="xl" class="w-full" required />
           </UFormField>
+
+          <!-- Honeypot: hidden from real users, filled by bots. -->
+          <div aria-hidden="true" class="absolute left-[-10000px] top-auto h-px w-px overflow-hidden">
+            <label>
+              Leave this field empty
+              <input
+                v-model="form.fax_extension"
+                type="text"
+                name="fax_extension"
+                tabindex="-1"
+                autocomplete="off"
+              >
+            </label>
+          </div>
 
           <UButton
             type="submit"
@@ -174,14 +234,25 @@ const galleryImages = [
           >
             Count Me In
           </UButton>
+
+          <p v-if="errorMessage" class="text-sm text-red-400 text-center" role="alert">
+            {{ errorMessage }}
+          </p>
         </form>
       </div>
 
       <div v-else class="p-12 rounded-3xl bg-primary-500/10 border border-primary-500/20 text-center animate-in fade-in zoom-in duration-500">
         <UIcon name="i-lucide-check-circle" class="w-16 h-16 text-primary-500 mx-auto mb-4" />
-        <h3 class="text-2xl font-bold mb-2">You're on the list!</h3>
+        <h3 class="text-2xl font-bold mb-2">
+          {{ alreadyRegistered ? 'Already on the list' : "You're on the list!" }}
+        </h3>
         <p class="text-gray-400">
-          Thanks {{ form.name.split(' ')[0] }}! We'll email you at {{ form.email }} as soon as tickets go live for <EventBrandName typography="inherit" />.
+          <template v-if="alreadyRegistered">
+            We already had {{ form.email }} down. You’re good — we’ll email you when <EventBrandName typography="inherit" /> tickets go on sale.
+          </template>
+          <template v-else>
+            Thanks {{ form.name.split(' ')[0] }}! You’re on the list for ticket updates — we’ll email {{ form.email }} when <EventBrandName typography="inherit" /> tickets go on sale.
+          </template>
         </p>
         <UButton variant="ghost" class="mt-6" @click="registered = false">Back</UButton>
       </div>
@@ -189,17 +260,32 @@ const galleryImages = [
 
     <!-- Gallery Section -->
     <section class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      <h2 class="text-3xl font-bold mb-12 text-center">The Vibe</h2>
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div v-for="(img, i) in galleryImages" :key="i" class="relative group overflow-hidden rounded-2xl aspect-square">
-          <img 
-            :src="img" 
+      <h2 class="text-3xl font-bold mb-12 text-center">The Gaff</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div v-for="img in galleryImages" :key="img.src" class="relative group overflow-hidden rounded-2xl aspect-square">
+          <img
+            :src="img.src"
             class="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
-            alt="Prom afters vibe"
-          />
+            :alt="img.alt"
+            loading="lazy"
+            decoding="async"
+          >
           <div class="absolute inset-0 bg-gradient-to-t from-gray-950/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
       </div>
+
+      <figure class="mx-auto mt-16 flex max-w-xs flex-col items-center text-center sm:max-w-sm">
+        <figcaption class="mb-5 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+          The Gaffa
+        </figcaption>
+        <img
+          src="/images/the-gaffa.png"
+          alt=""
+          class="aspect-square w-full rounded-2xl border border-gray-800 object-cover shadow-xl"
+          loading="lazy"
+          decoding="async"
+        >
+      </figure>
     </section>
 
     <!-- Stripe Skeleton (Hidden/Disabled) -->

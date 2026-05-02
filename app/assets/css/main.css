@@ -30,12 +30,18 @@
 }
 
 @layer base {
+  /*
+    overflow-x: hidden can force overflow-y to compute to auto (nested scroll region).
+    Clip horizontal bleed without creating a second scrollbar — single column scroll on the viewport.
+  */
   html {
     scroll-padding-top: 1rem;
+    overflow-x: clip;
   }
 
   body {
-    @apply bg-gray-950 text-gray-100;
+    @apply m-0 min-h-0 bg-gray-950 text-gray-100;
+    overflow-x: clip;
   }
 }
 
@@ -63,7 +69,8 @@
   max-width: 56rem;
   margin-left: auto;
   margin-right: auto;
-  height: clamp(8.25rem, 24vmin, 13rem);
+  /* Matched to tighter prism — less vertical dead space */
+  height: clamp(6.25rem, 17vmin, 10rem);
   overflow: hidden;
 }
 

@@ -1,13 +1,12 @@
 import path from 'node:path'
 import sharp from 'sharp'
 
-const input = path.resolve('public/images/hero-outside.png')
-const outWebp = path.resolve('public/images/hero-outside.webp')
-const outJpg = path.resolve('public/images/hero-outside.jpg')
+/** Hero background: lit cabin at Harry’s (landscape, correct orientation via EXIF). */
+const input = path.resolve('public/images/venue-cabin.png')
+const outWebp = path.resolve('public/images/hero-venue.webp')
+const outJpg = path.resolve('public/images/hero-venue.jpg')
 
-// The original photo is sideways; rotate the correct direction for upright display.
-// (If it looks upside down, this is the other direction vs a 90° clockwise rotate.)
-const img = sharp(input).rotate(270)
+const img = sharp(input).rotate()
 
 await img
   .clone()
@@ -34,4 +33,3 @@ await img
 
 // eslint-disable-next-line no-console
 console.log('Generated:', outWebp, outJpg)
-

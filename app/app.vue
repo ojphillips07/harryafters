@@ -4,7 +4,8 @@ useHead({
     { name: 'viewport', content: 'width=device-width, initial-scale=1' }
   ],
   link: [
-    { rel: 'icon', href: '/favicon.ico' },
+    { rel: 'icon', type: 'image/png', href: '/favicon.png' },
+    { rel: 'apple-touch-icon', href: '/favicon.png' },
     {
       rel: 'stylesheet',
       href: 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@700;800&family=Syne:wght@700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap'
@@ -28,12 +29,14 @@ useSeoMeta({
 </script>
 
 <template>
-  <UApp>
-    <UMain>
+  <UApp class="flex min-h-dvh flex-col">
+    <UMain class="min-h-0 min-w-0 flex-1">
       <NuxtPage />
     </UMain>
 
-    <UFooter class="border-t border-gray-800 bg-gray-950/50 backdrop-blur-md py-8">
+    <InterestPopupModal />
+
+    <UFooter class="shrink-0 border-t border-gray-800 bg-gray-950/50 backdrop-blur-md py-8">
       <template #left>
         <div class="flex flex-col gap-2">
           <p class="text-sm text-gray-400 flex flex-wrap items-baseline gap-x-1">
