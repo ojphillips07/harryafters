@@ -63,11 +63,11 @@ const galleryImages = [
             Registration Open
           </div>
 
-          <div class="min-h-[5rem] sm:min-h-[6rem] md:min-h-[7rem] lg:min-h-[7.5rem] flex items-center justify-center mb-6">
+          <div class="hero-brand-slot mb-6">
             <Transition name="brand-fade" mode="out-in">
               <div
                 :key="brandIndex"
-                class="max-w-4xl mx-auto px-2 text-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-[1.12]"
+                class="hero-brand-layer hero-brand-size"
               >
                 <EventBrandName typography="hero" />
               </div>

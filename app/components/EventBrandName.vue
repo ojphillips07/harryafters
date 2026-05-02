@@ -16,8 +16,10 @@ const fontClass = computed(() =>
 
 <template>
   <span
-    class="inline"
-    :class="fontClass"
+    :class="[
+      fontClass,
+      typography === 'hero' ? 'inline-block max-w-full text-balance' : 'inline'
+    ]"
   >
     <span
       v-for="(part, i) in brandTitleParts"
