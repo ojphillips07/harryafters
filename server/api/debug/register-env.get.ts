@@ -1,3 +1,5 @@
+import { getCheckoutLineAmounts } from '../../utils/stripe'
+
 /**
  * GET /api/debug/register-env
  *
@@ -31,9 +33,17 @@ export default defineEventHandler(() => {
   const resendKey = String(config.resendApiKey ?? '')
   const stripeKey = String(config.stripeSecretKey ?? '').trim()
   const stripeWh = String(config.stripeWebhookSecret ?? '').trim()
+  const checkoutTotal = Number(String(config.checkoutTotalPence ?? '').trim())
   const ticketPrice = Number(String(config.ticketPricePence ?? '').trim())
   const bookingFee = Number(String(config.bookingFeePence ?? '30').trim())
   const siteUrl = String(config.public?.siteUrl ?? '').trim()
+
+  let resolvedCheckoutTotal: number | null = null
+  try {
+    resolvedCheckoutTotal = getCheckoutLineAmounts().totalPence
+  } catch {
+    resolvedCheckoutTotal = null
+  }
 
   const supabaseUrlLooksLikeProject = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(url.trim())
 
@@ -67,8 +77,11 @@ export default defineEventHandler(() => {
     hasAdminToken: Boolean(config.adminToken),
     hasStripeSecretKey: Boolean(stripeKey),
     hasStripeWebhookSecret: Boolean(stripeWh),
+    hasCheckoutTotalPence: Number.isFinite(checkoutTotal) && checkoutTotal >= 1,
     hasTicketPricePence: Number.isFinite(ticketPrice) && ticketPrice > 0,
     hasBookingFeePence: Number.isFinite(bookingFee) && bookingFee >= 0,
+    /** Resolved total from getCheckoutLineAmounts (same math as Stripe), e.g. 630 = £6.30 */
+    checkoutTotalPenceResolved: resolvedCheckoutTotal,
     /** Entry ticket + booking fee; both env vars must be valid */
     checkoutSplitOk:
       Number.isFinite(ticketPrice)

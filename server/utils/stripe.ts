@@ -26,20 +26,6 @@ export function useStripe(): Stripe {
   return client
 }
 
-/** Entry ticket only (excludes booking fee). `NUXT_TICKET_PRICE_PENCE`, e.g. 600 = £6.00. */
-export function getTicketPricePence(): number {
-  const config = useRuntimeConfig()
-  const n = Number(String(config.ticketPricePence ?? '').trim())
-  if (!Number.isFinite(n) || n <= 0) {
-    throw createError({
-      statusCode: 500,
-      statusMessage:
-        'NUXT_TICKET_PRICE_PENCE is missing or invalid (must be a positive integer in pence — the entry ticket subtotal, not including the booking fee).'
-    })
-  }
-  return Math.round(n)
-}
-
 /** Card-processing booking fee line item in Stripe Checkout (default 30p). */
 export function getBookingFeePence(): number {
   const config = useRuntimeConfig()
@@ -53,18 +39,64 @@ export function getBookingFeePence(): number {
   return n
 }
 
+/** Default checkout total in pence when env omits both total and entry (£6.30). */
+const DEFAULT_CHECKOUT_TOTAL_PENCE = 630
+
 /**
- * Entry ticket + booking fee line items. Total charged =
- * `NUXT_TICKET_PRICE_PENCE` + `NUXT_BOOKING_FEE_PENCE` (e.g. 600 + 30 = £6.30).
+ * Entry ticket + booking fee line items.
+ *
+ * Prefer `NUXT_CHECKOUT_TOTAL_PENCE` (e.g. 630 = £6.30 all-in); entry is computed as total − fee.
+ * Legacy: `NUXT_TICKET_PRICE_PENCE` (entry only, e.g. 600) + fee — never put 630 in the entry field
+ * (that is the full total in pence and adds the fee twice → £6.60).
  */
 export function getCheckoutLineAmounts(): {
   entryPence: number
   bookingPence: number
   totalPence: number
 } {
-  const entryPence = getTicketPricePence()
+  const config = useRuntimeConfig()
   const bookingPence = getBookingFeePence()
-  const totalPence = entryPence + bookingPence
+
+  const totalRaw = String(config.checkoutTotalPence ?? '').trim()
+  const ticketRaw = String(config.ticketPricePence ?? '').trim()
+
+  const totalParsed = totalRaw !== '' ? Math.round(Number(totalRaw)) : NaN
+  const ticketParsed = ticketRaw !== '' ? Math.round(Number(ticketRaw)) : NaN
+
+  let totalPence: number
+  let entryPence: number
+
+  if (Number.isFinite(totalParsed) && totalParsed >= 1) {
+    totalPence = totalParsed
+    entryPence = totalPence - bookingPence
+    if (entryPence < 1) {
+      throw createError({
+        statusCode: 500,
+        statusMessage:
+          'NUXT_CHECKOUT_TOTAL_PENCE must be larger than NUXT_BOOKING_FEE_PENCE (e.g. 630 total with 30p fee → £6.00 entry).'
+      })
+    }
+  } else if (Number.isFinite(ticketParsed) && ticketParsed >= 1) {
+    if (ticketParsed === 630 && bookingPence === 30) {
+      throw createError({
+        statusCode: 500,
+        statusMessage:
+          'NUXT_TICKET_PRICE_PENCE is 630 — that number is the full £6.30 total in pence, not the entry line. Use NUXT_CHECKOUT_TOTAL_PENCE=630 (recommended) or NUXT_TICKET_PRICE_PENCE=600 so the total stays £6.30, not £6.60.'
+      })
+    }
+    entryPence = ticketParsed
+    totalPence = entryPence + bookingPence
+  } else {
+    totalPence = DEFAULT_CHECKOUT_TOTAL_PENCE
+    entryPence = totalPence - bookingPence
+    if (entryPence < 1) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'NUXT_BOOKING_FEE_PENCE is too high for the default £6.30 checkout total.'
+      })
+    }
+  }
+
   return { entryPence, bookingPence, totalPence }
 }
 

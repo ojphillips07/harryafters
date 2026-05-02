@@ -172,7 +172,7 @@ const galleryImages = [
       <div class="max-w-4xl mx-auto px-4 text-center">
         <h2 class="text-3xl font-bold mb-6">Not asking for much</h2>
         <div class="p-8 rounded-3xl bg-gray-950 border border-primary-500/20 glow-box">
-          <p class="text-xl md:text-2xl font-medium mb-4">Tickets will be around <span class="text-primary-500 font-black">£5–£6</span></p>
+          <p class="text-xl md:text-2xl font-medium mb-4">Tickets are <span class="text-primary-500 font-black">£6.30</span> total <span class="text-gray-500 text-lg font-normal">(including a separate card/booking fee)</span></p>
           <p class="text-gray-400 leading-relaxed">
             We’re taking over Harry’s — lights, music, and drinks. Everything from ticket sales goes towards <span class="text-white font-semibold">setup</span>: lights, sound, cleanup, etc.
             <span class="text-white font-semibold"> Any money left after that goes on free drinks</span> for everyone on the night.

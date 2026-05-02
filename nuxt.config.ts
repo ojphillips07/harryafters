@@ -20,9 +20,14 @@ export default defineNuxtConfig({
     adminToken: '',
     stripeSecretKey: '',
     stripeWebhookSecret: '',
-    /** Entry ticket only in pence (not including booking fee). Default £6.00 = 600. */
-    ticketPricePence: '600',
-    /** Booking fee in pence (own line in Stripe Checkout). Default 30p. Total = ticket + booking (e.g. 630). */
+    /**
+     * Full amount charged in pence (£6.30 = 630). Entry line on Stripe = this minus booking fee.
+     * Prefer this over ticketPricePence so you never double-add the fee (630 entry + 30 fee = £6.60 by mistake).
+     */
+    checkoutTotalPence: '',
+    /** Legacy: entry ticket only in pence (e.g. 600). Ignored if checkoutTotalPence is set. */
+    ticketPricePence: '',
+    /** Booking fee in pence (separate Stripe line). Default 30p. */
     bookingFeePence: '30',
     public: {
       /** Public site origin used for Stripe success/cancel URLs and ticket links. */
