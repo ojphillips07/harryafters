@@ -1,6 +1,4 @@
 <script setup lang="ts">
-const { brandIndex } = useEventBranding()
-
 const registered = ref(false)
 const loading = ref(false)
 
@@ -63,16 +61,7 @@ const galleryImages = [
             Registration Open
           </div>
 
-          <div class="hero-brand-slot mb-6">
-            <Transition name="brand-fade" mode="out-in">
-              <div
-                :key="brandIndex"
-                class="hero-brand-layer hero-brand-size"
-              >
-                <EventBrandName typography="hero" />
-              </div>
-            </Transition>
-          </div>
+          <HeroRollingCube />
 
           <p class="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto mb-10 leading-relaxed">
             <span class="font-semibold"><EventBrandName typography="inherit" /></span> is gonna be sick — everyone’s gonna be there.
@@ -250,13 +239,4 @@ const galleryImages = [
     repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px);
 }
 
-.brand-fade-enter-active,
-.brand-fade-leave-active {
-  transition: opacity 0.35s ease;
-}
-
-.brand-fade-enter-from,
-.brand-fade-leave-to {
-  opacity: 0;
-}
 </style>
