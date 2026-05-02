@@ -63,7 +63,7 @@
   max-width: 56rem;
   margin-left: auto;
   margin-right: auto;
-  height: clamp(6.75rem, 19vmin, 10.5rem);
+  height: clamp(8.25rem, 24vmin, 13rem);
   overflow: hidden;
 }
 
@@ -79,8 +79,8 @@
 
 /* One consistent optical size for every rotation */
 .hero-brand-size {
-  font-size: clamp(1.75rem, 4.8vmin, 3rem);
-  line-height: 1.1;
+  font-size: clamp(2.25rem, 6.5vmin, 4rem);
+  line-height: 1.08;
   max-width: 100%;
 }
 
