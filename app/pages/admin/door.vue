@@ -35,7 +35,8 @@ const cameraError = ref<string | null>(null)
 const cameraReady = ref(false)
 const usingFallback = ref(false)
 const submitting = ref(false)
-const admitModalOpen = ref(false)
+/** Blocks scanning until staff dismisses the last check-in outcome (any status). */
+const resultModalOpen = ref(false)
 const lastScanned = ref<{ id: string, at: number } | null>(null)
 
 const videoRef = ref<HTMLVideoElement | null>(null)
@@ -203,7 +204,7 @@ function decodeJsQrFromVideo(video: HTMLVideoElement): string | null {
 async function scanTick() {
   if (!cameraReady.value) return
 
-  if (submitting.value || admitModalOpen.value) {
+  if (submitting.value || resultModalOpen.value) {
     scheduleScan()
     return
   }
@@ -248,11 +249,20 @@ async function scanTick() {
 }
 
 async function handleScan(payload: string) {
-  if (!payload || submitting.value || admitModalOpen.value) return
+  if (!payload || submitting.value || resultModalOpen.value) return
   if (!UUID_RE.test(payload)) return
 
   const now = Date.now()
   if (lastScanned.value && lastScanned.value.id === payload && now - lastScanned.value.at < 1000) {
+    lastResult.value = {
+      status: 'error',
+      message: 'Duplicate scan — dismiss to continue.',
+      at: now
+    }
+    resultModalOpen.value = true
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([30, 40, 30])
+    }
     return
   }
   lastScanned.value = { id: payload, at: now }
@@ -261,11 +271,12 @@ async function handleScan(payload: string) {
 }
 
 async function submitManual() {
-  if (admitModalOpen.value) return
+  if (resultModalOpen.value) return
   const v = manualId.value.trim()
   if (!v) return
   if (!UUID_RE.test(v)) {
     lastResult.value = { status: 'error', message: 'That doesn\'t look like a ticket ID.', at: Date.now() }
+    resultModalOpen.value = true
     return
   }
   await submitCheckIn(v)
@@ -286,9 +297,7 @@ async function submitCheckIn(ticketId: string) {
       ticket: res.ticket,
       at: Date.now()
     }
-    if (res.status === 'ok') {
-      admitModalOpen.value = true
-    }
+    resultModalOpen.value = true
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(res.status === 'ok' ? 80 : [40, 60, 40])
     }
@@ -299,6 +308,7 @@ async function submitCheckIn(ticketId: string) {
       if (d?.statusMessage) msg = d.statusMessage
     }
     lastResult.value = { status: 'error', message: msg, at: Date.now() }
+    resultModalOpen.value = true
   } finally {
     submitting.value = false
   }
@@ -334,6 +344,28 @@ const resultHeading = computed(() => {
   return ''
 })
 
+const modalUi = computed(() => {
+  const s = lastResult.value?.status
+  let bar = 'border-gray-600/40 shadow-black/30'
+  if (s === 'ok') bar = 'border-emerald-500/50 shadow-emerald-950/50'
+  else if (s === 'already_used') bar = 'border-amber-500/50 shadow-amber-950/40'
+  else if (s === 'refunded') bar = 'border-orange-500/50 shadow-orange-950/40'
+  else if (s === 'not_found' || s === 'error') bar = 'border-red-500/50 shadow-red-950/40'
+  return {
+    overlay: 'backdrop-blur-sm bg-black/70',
+    content: `max-w-md border-2 ${bar} bg-gray-950 shadow-2xl sm:max-w-lg`
+  }
+})
+
+const modalTitleClass = computed(() => {
+  const s = lastResult.value?.status
+  if (s === 'ok') return 'text-emerald-400'
+  if (s === 'already_used') return 'text-amber-400'
+  if (s === 'refunded') return 'text-orange-400'
+  if (s === 'not_found' || s === 'error') return 'text-red-400'
+  return 'text-gray-200'
+})
+
 function formattedUsedAt(iso: string | null | undefined) {
   if (!iso) return ''
   try {
@@ -367,24 +399,27 @@ html.ha-door-noscroll body {
     <div class="pointer-events-none absolute -left-[20%] -top-[20%] h-[60%] w-[60%] bg-primary-500/10 blur-[120px] rounded-full" />
     <div class="pointer-events-none absolute -right-[20%] -bottom-[20%] h-[60%] w-[60%] bg-accent-500/10 blur-[120px] rounded-full" />
 
-    <section class="relative isolate max-sm:h-full max-sm:min-h-0 max-sm:overflow-hidden max-sm:py-5 min-h-screen py-10 px-4 sm:px-6">
-      <div class="w-full max-w-md mx-auto space-y-6">
-        <header class="text-center">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium">
+    <section class="relative isolate max-sm:flex max-sm:h-full max-sm:min-h-0 max-sm:flex-col max-sm:overflow-hidden max-sm:py-2 min-h-screen py-10 px-4 sm:px-6">
+      <div class="w-full max-w-md mx-auto flex flex-col max-sm:h-full max-sm:min-h-0 space-y-6 max-sm:space-y-2">
+        <header class="text-center shrink-0 max-sm:space-y-0.5">
+          <div class="inline-flex items-center gap-2 px-3 py-1 max-sm:px-2 max-sm:py-0.5 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm max-sm:text-xs font-medium">
             Door scan
           </div>
-          <h1 class="mt-3 font-[family-name:Bebas_Neue,sans-serif] text-4xl tracking-wider uppercase">
+          <h1 class="mt-2 max-sm:mt-1 font-[family-name:Bebas_Neue,sans-serif] text-4xl max-sm:text-2xl tracking-wider uppercase leading-tight">
             Harry Afters
           </h1>
-          <p class="mt-1 text-sm text-gray-400">
+          <p class="mt-1 text-sm text-gray-400 max-sm:hidden">
             Point the back camera at the QR. Scan once per ticket.
+          </p>
+          <p class="mt-0.5 text-[11px] text-gray-500 sm:hidden">
+            Dismiss each popup before the next scan.
           </p>
         </header>
 
         <!-- Token gate -->
         <div
           v-if="!token"
-          class="p-6 rounded-2xl bg-gray-900/60 border border-gray-800"
+          class="p-6 max-sm:p-4 rounded-2xl bg-gray-900/60 border border-gray-800 max-sm:shrink-0"
         >
           <h2 class="font-bold mb-2">
             Enter admin token
@@ -418,12 +453,15 @@ html.ha-door-noscroll body {
         </div>
 
         <!-- Scanner -->
-        <template v-else>
-          <div class="rounded-3xl border border-gray-800 bg-gray-900/40 overflow-hidden">
-            <div class="aspect-square relative bg-black">
+        <div
+          v-else
+          class="flex min-h-0 flex-1 flex-col gap-2 sm:min-h-0 sm:flex-none sm:gap-6"
+        >
+          <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/40 sm:rounded-3xl sm:aspect-square sm:flex-none">
+            <div class="relative min-h-0 flex-1 max-sm:min-h-[100px]">
               <video
                 ref="videoRef"
-                class="h-full w-full object-cover"
+                class="absolute inset-0 h-full w-full object-cover"
                 muted
                 playsinline
               />
@@ -431,7 +469,6 @@ html.ha-door-noscroll body {
                 ref="canvasRef"
                 class="hidden"
               />
-              <!-- Scan reticle -->
               <div class="pointer-events-none absolute inset-0 grid place-items-center">
                 <div class="w-2/3 aspect-square rounded-2xl border-2 border-primary-400/70 shadow-[0_0_60px_rgba(236,72,153,0.4)]" />
               </div>
@@ -442,10 +479,11 @@ html.ha-door-noscroll body {
                 {{ cameraError ?? 'Starting camera…' }}
               </div>
             </div>
-            <div class="px-4 py-3 text-xs text-gray-500 flex items-center justify-between gap-3">
-              <span>{{ usingFallback ? 'Fallback scanner (jsqr)' : 'Native QR detector' }}</span>
+            <div class="flex shrink-0 items-center justify-between gap-2 border-t border-gray-800/80 px-2 py-1.5 text-[10px] text-gray-500 sm:px-4 sm:py-3 sm:text-xs">
+              <span class="truncate">{{ usingFallback ? 'jsqr' : 'Native detector' }}</span>
               <button
-                class="text-gray-400 hover:text-primary-300"
+                type="button"
+                class="shrink-0 text-gray-400 hover:text-primary-300"
                 @click="clearToken"
               >
                 Sign out
@@ -453,15 +491,14 @@ html.ha-door-noscroll body {
             </div>
           </div>
 
-          <!-- Manual entry -->
           <form
-            class="rounded-2xl border border-gray-800 bg-gray-900/40 p-4 space-y-3"
+            class="shrink-0 space-y-2 rounded-2xl border border-gray-800 bg-gray-900/40 p-2 sm:space-y-3 sm:p-4"
             @submit.prevent="submitManual"
           >
-            <label class="block text-xs font-bold uppercase tracking-widest text-gray-400">Manual entry</label>
+            <label class="block text-[10px] font-bold uppercase tracking-widest text-gray-400 sm:text-xs">Manual entry</label>
             <UInput
               v-model="manualId"
-              placeholder="Paste / type ticket ID"
+              placeholder="Ticket ID"
               autocomplete="off"
               class="w-full"
             />
@@ -469,83 +506,55 @@ html.ha-door-noscroll body {
               type="submit"
               color="neutral"
               block
-              class="font-semibold rounded-xl"
+              class="rounded-lg py-2 text-sm font-semibold sm:rounded-xl sm:py-2.5 sm:text-base"
             >
               Check in
             </UButton>
           </form>
 
-          <!-- Result panel (full detail for non-admit; admit uses modal) -->
           <div
-            class="rounded-3xl border p-6 transition-colors"
+            class="hidden rounded-3xl border p-6 transition-colors sm:block"
             :class="resultClass"
           >
             <template v-if="lastResult">
-              <template v-if="lastResult.status === 'ok'">
-                <div
-                  v-if="admitModalOpen"
-                  class="text-center text-sm text-gray-400 py-1"
-                >
-                  Admit popup open — dismiss it to scan the next guest.
+              <div class="flex items-center gap-3">
+                <UIcon
+                  :name="resultIcon"
+                  class="w-7 h-7"
+                />
+                <div class="font-[family-name:Bebas_Neue,sans-serif] text-3xl tracking-wider">
+                  {{ resultHeading }}
+                </div>
+              </div>
+              <div
+                v-if="lastResult.ticket"
+                class="mt-3"
+              >
+                <div class="text-xl font-bold text-white">
+                  {{ lastResult.ticket.name }}
+                </div>
+                <div class="mt-1 font-mono text-[11px] break-all opacity-75">
+                  {{ lastResult.ticket.id }}
                 </div>
                 <div
-                  v-else
-                  class="flex items-center gap-3"
+                  v-if="lastResult.ticket.usedAt"
+                  class="mt-1 text-sm"
                 >
-                  <UIcon
-                    name="i-lucide-check-circle"
-                    class="w-7 h-7 shrink-0"
-                  />
-                  <div>
-                    <div class="font-[family-name:Bebas_Neue,sans-serif] text-xl tracking-wider text-emerald-200">
-                      Last admit
-                    </div>
-                    <div class="text-lg font-bold text-white mt-0.5">
-                      {{ lastResult.ticket?.name }}
-                    </div>
-                  </div>
+                  Used at {{ formattedUsedAt(lastResult.ticket.usedAt) }}
                 </div>
-              </template>
-              <template v-else>
-                <div class="flex items-center gap-3">
-                  <UIcon
-                    :name="resultIcon"
-                    class="w-7 h-7"
-                  />
-                  <div class="font-[family-name:Bebas_Neue,sans-serif] text-3xl tracking-wider">
-                    {{ resultHeading }}
-                  </div>
-                </div>
-                <div
-                  v-if="lastResult.ticket"
-                  class="mt-3"
-                >
-                  <div class="text-xl font-bold text-white">
-                    {{ lastResult.ticket.name }}
-                  </div>
-                  <div class="mt-1 font-mono text-[11px] break-all opacity-75">
-                    {{ lastResult.ticket.id }}
-                  </div>
-                  <div
-                    v-if="lastResult.ticket.usedAt"
-                    class="mt-1 text-sm"
-                  >
-                    Used at {{ formattedUsedAt(lastResult.ticket.usedAt) }}
-                  </div>
-                </div>
-                <div
-                  v-else-if="lastResult.message"
-                  class="mt-3 text-sm"
-                >
-                  {{ lastResult.message }}
-                </div>
-                <div
-                  v-else-if="lastResult.status === 'not_found'"
-                  class="mt-3 text-sm"
-                >
-                  That ticket isn't in our system. Check the QR or try manual entry.
-                </div>
-              </template>
+              </div>
+              <div
+                v-else-if="lastResult.message"
+                class="mt-3 text-sm"
+              >
+                {{ lastResult.message }}
+              </div>
+              <div
+                v-else-if="lastResult.status === 'not_found'"
+                class="mt-3 text-sm"
+              >
+                That ticket isn't in our system. Check the QR or try manual entry.
+              </div>
             </template>
             <template v-else>
               <div class="flex items-center gap-3 text-gray-300">
@@ -559,59 +568,94 @@ html.ha-door-noscroll body {
           </div>
 
           <UModal
-            v-model:open="admitModalOpen"
+            v-model:open="resultModalOpen"
             :dismissible="false"
             :close="false"
-            :ui="{
-              overlay: 'backdrop-blur-sm bg-black/70',
-              content:
-                'max-w-md border-2 border-emerald-500/50 bg-gray-950 shadow-2xl shadow-emerald-950/50 sm:max-w-lg'
-            }"
+            :ui="modalUi"
           >
             <template #title>
-              <span class="flex items-center gap-2 text-2xl font-black uppercase tracking-wider text-emerald-400 sm:text-3xl">
+              <span
+                class="flex items-center gap-2 text-xl font-black uppercase tracking-wider sm:text-2xl md:text-3xl"
+                :class="modalTitleClass"
+              >
                 <UIcon
-                  name="i-lucide-check-circle"
-                  class="w-8 h-8 shrink-0"
+                  :name="resultIcon"
+                  class="h-7 w-7 shrink-0 sm:h-8 sm:w-8"
                 />
-                Admit
+                {{ resultHeading }}
               </span>
             </template>
             <template #body>
               <div
-                v-if="lastResult?.ticket && lastResult.status === 'ok'"
-                class="space-y-4"
+                v-if="lastResult"
+                class="space-y-3 sm:space-y-4"
               >
-                <p class="text-center text-3xl font-bold leading-tight text-white sm:text-4xl">
+                <p
+                  v-if="lastResult.ticket && (lastResult.status === 'ok' || lastResult.status === 'already_used' || lastResult.status === 'refunded')"
+                  class="text-center text-2xl font-bold leading-tight text-white sm:text-3xl"
+                >
                   {{ lastResult.ticket.name }}
                 </p>
-                <p class="font-mono text-center text-[11px] break-all text-gray-500">
+                <p
+                  v-if="lastResult.ticket"
+                  class="break-all text-center font-mono text-[11px] text-gray-500"
+                >
                   {{ lastResult.ticket.id }}
                 </p>
                 <p
-                  v-if="lastResult.ticket.usedAt"
+                  v-if="lastResult.ticket?.usedAt && lastResult.status === 'ok'"
                   class="text-center text-sm text-gray-400"
                 >
                   Checked in {{ formattedUsedAt(lastResult.ticket.usedAt) }}
                 </p>
+                <p
+                  v-if="lastResult.ticket?.usedAt && (lastResult.status === 'already_used' || lastResult.status === 'refunded')"
+                  class="text-center text-sm text-gray-400"
+                >
+                  Used at {{ formattedUsedAt(lastResult.ticket.usedAt) }}
+                </p>
+                <p
+                  v-if="lastResult.status === 'already_used'"
+                  class="text-center text-sm text-amber-200/90"
+                >
+                  Duplicate scan — ticket was already used.
+                </p>
+                <p
+                  v-if="lastResult.status === 'refunded'"
+                  class="text-center text-sm text-orange-200/90"
+                >
+                  Do not admit — ticket was refunded.
+                </p>
+                <p
+                  v-if="lastResult.status === 'not_found'"
+                  class="text-center text-sm text-gray-300"
+                >
+                  That ticket isn't in our system. Check the QR or try manual entry.
+                </p>
+                <p
+                  v-if="lastResult.status === 'error' && lastResult.message"
+                  class="text-center text-sm text-gray-300"
+                >
+                  {{ lastResult.message }}
+                </p>
                 <UButton
-                  color="primary"
+                  :color="lastResult.status === 'ok' ? 'primary' : 'neutral'"
                   size="xl"
                   block
-                  class="mt-6 font-bold rounded-2xl"
-                  @click="admitModalOpen = false"
+                  class="mt-4 font-bold rounded-2xl sm:mt-6"
+                  @click="resultModalOpen = false"
                 >
                   Dismiss
                 </UButton>
               </div>
             </template>
           </UModal>
-        </template>
+        </div>
 
-        <div class="text-center">
+        <div class="shrink-0 text-center max-sm:py-0.5">
           <NuxtLink
             to="/"
-            class="text-xs text-gray-500 hover:text-primary-300 transition-colors"
+            class="text-[11px] text-gray-500 hover:text-primary-300 transition-colors sm:text-xs"
           >
             ← Back to the site
           </NuxtLink>
