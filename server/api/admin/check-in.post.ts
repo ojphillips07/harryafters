@@ -38,6 +38,33 @@ export default defineEventHandler(async (event) => {
   }
 
   const supabase = useSupabaseAdmin()
+  const usedAt = new Date().toISOString()
+
+  /** One round-trip on the hot path: mark used only if paid + unused. */
+  const { data: claimed, error: claimError } = await supabase
+    .from('tickets')
+    .update({ used_at: usedAt })
+    .eq('id', raw)
+    .eq('status', 'paid')
+    .is('used_at', null)
+    .select('id, name, used_at')
+    .maybeSingle()
+
+  if (claimError) {
+    console.error('[admin/check-in] claim failed', claimError)
+    throw createError({ statusCode: 500, statusMessage: 'Could not mark ticket as used.' })
+  }
+
+  if (claimed) {
+    return {
+      status: 'ok' as const,
+      ticket: {
+        id: claimed.id,
+        name: claimed.name,
+        usedAt: claimed.used_at ?? usedAt
+      }
+    }
+  }
 
   const { data: ticket, error: lookupError } = await supabase
     .from('tickets')
@@ -61,27 +88,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  if (ticket.used_at) {
-    return {
-      status: 'already_used' as const,
-      ticket: { id: ticket.id, name: ticket.name, usedAt: ticket.used_at }
-    }
-  }
-
-  const usedAt = new Date().toISOString()
-  const { error: updateError } = await supabase
-    .from('tickets')
-    .update({ used_at: usedAt })
-    .eq('id', raw)
-    .is('used_at', null)
-
-  if (updateError) {
-    console.error('[admin/check-in] update failed', updateError)
-    throw createError({ statusCode: 500, statusMessage: 'Could not mark ticket as used.' })
-  }
-
   return {
-    status: 'ok' as const,
-    ticket: { id: ticket.id, name: ticket.name, usedAt }
+    status: 'already_used' as const,
+    ticket: { id: ticket.id, name: ticket.name, usedAt: ticket.used_at }
   }
 })

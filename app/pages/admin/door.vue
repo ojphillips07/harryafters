@@ -44,6 +44,13 @@ let stream: MediaStream | null = null
 let detector: { detect: (s: HTMLVideoElement) => Promise<Array<{ rawValue?: string }>> } | null = null
 let scanLoopId: number | null = null
 let jsqrModule: typeof import('jsqr').default | null = null
+/** Prevents overlapping BarcodeDetector/jsQR work (was stacking async frames). */
+let detecting = false
+/** jsQR: decode every Nth processed frame to cut CPU (~half the work). */
+let jsQrFrameCounter = 0
+const JSQR_FRAME_STRIDE = 2
+/** Max width for jsQR canvas — full-res decode was the main bottleneck. */
+const JSQR_MAX_WIDTH = 480
 
 onMounted(() => {
   if (typeof window === 'undefined') return
@@ -84,8 +91,13 @@ async function startCamera() {
 
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } },
-      audio: false
+      audio: false,
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 960 },
+        height: { ideal: 960 },
+        frameRate: { ideal: 30, max: 30 }
+      }
     })
     await nextTick()
     const video = videoRef.value
@@ -138,49 +150,80 @@ function stopCamera() {
 }
 
 function scheduleScan() {
-  scanLoopId = requestAnimationFrame(scanFrame)
+  scanLoopId = requestAnimationFrame(() => {
+    void scanTick()
+  })
 }
 
-async function scanFrame() {
+function decodeJsQrFromVideo(video: HTMLVideoElement): string | null {
+  if (!jsqrModule) return null
+  const canvas = canvasRef.value
+  if (!canvas) return null
+
+  const vw = video.videoWidth
+  const vh = video.videoHeight
+  if (vw <= 0 || vh <= 0) return null
+
+  let dw = vw
+  let dh = vh
+  if (vw > JSQR_MAX_WIDTH) {
+    dh = Math.round((vh * JSQR_MAX_WIDTH) / vw)
+    dw = JSQR_MAX_WIDTH
+  }
+
+  canvas.width = dw
+  canvas.height = dh
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  if (!ctx) return null
+
+  ctx.drawImage(video, 0, 0, dw, dh)
+  const imgData = ctx.getImageData(0, 0, dw, dh)
+  const found = jsqrModule(imgData.data, dw, dh, { inversionAttempts: 'attemptBoth' })
+  return found?.data ?? null
+}
+
+async function scanTick() {
   if (!cameraReady.value) return
+
+  if (submitting.value) {
+    scheduleScan()
+    return
+  }
+  if (detecting) {
+    return
+  }
+
   const video = videoRef.value
   if (!video || video.readyState < 2) {
     scheduleScan()
     return
   }
 
+  detecting = true
   let value: string | null = null
 
-  if (detector) {
-    try {
-      const codes = await detector.detect(video)
-      if (codes.length > 0 && typeof codes[0]?.rawValue === 'string') {
-        value = codes[0].rawValue
-      }
-    } catch {
-      /* ignore frame error */
-    }
-  } else if (jsqrModule) {
-    const canvas = canvasRef.value
-    if (canvas) {
-      const w = video.videoWidth
-      const h = video.videoHeight
-      if (w > 0 && h > 0) {
-        canvas.width = w
-        canvas.height = h
-        const ctx = canvas.getContext('2d', { willReadFrequently: true })
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, w, h)
-          const imgData = ctx.getImageData(0, 0, w, h)
-          const found = jsqrModule(imgData.data, w, h, { inversionAttempts: 'attemptBoth' })
-          if (found?.data) value = found.data
+  try {
+    if (detector) {
+      try {
+        const codes = await detector.detect(video)
+        if (codes.length > 0 && typeof codes[0]?.rawValue === 'string') {
+          value = codes[0].rawValue
         }
+      } catch {
+        /* ignore frame error */
+      }
+    } else if (jsqrModule) {
+      jsQrFrameCounter += 1
+      if (jsQrFrameCounter % JSQR_FRAME_STRIDE === 0) {
+        value = decodeJsQrFromVideo(video)
       }
     }
-  }
 
-  if (value) {
-    void handleScan(value.trim())
+    if (value) {
+      void handleScan(value.trim())
+    }
+  } finally {
+    detecting = false
   }
 
   scheduleScan()
@@ -191,7 +234,7 @@ async function handleScan(payload: string) {
   if (!UUID_RE.test(payload)) return
 
   const now = Date.now()
-  if (lastScanned.value && lastScanned.value.id === payload && now - lastScanned.value.at < 2500) {
+  if (lastScanned.value && lastScanned.value.id === payload && now - lastScanned.value.at < 1000) {
     return
   }
   lastScanned.value = { id: payload, at: now }
