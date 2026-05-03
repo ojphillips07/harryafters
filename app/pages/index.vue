@@ -184,6 +184,115 @@ const galleryImages = [
           >
         </div>
       </div>
+
+      <div class="mt-20 pt-16 border-t border-gray-800">
+        <div class="text-center lg:text-left max-w-3xl mx-auto lg:mx-0 mb-10">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium mb-4">
+            <UIcon name="i-lucide-disc-3" class="w-4 h-4" />
+            Music
+          </div>
+          <h3 class="text-2xl md:text-3xl font-bold text-white mb-4">
+            MC Cal on the decks
+          </h3>
+          <p class="text-lg text-gray-400 leading-relaxed">
+            The plan is for <span class="text-white font-semibold">MC Cal</span> to kickstart the party with a set, then music is open to requests.
+          </p>
+        </div>
+        <div class="mc-dj-grid grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6 max-w-5xl mx-auto">
+          <figure class="mc-dj-frame mc-dj-frame--1 group relative [perspective:900px]">
+            <div class="mc-dj-frame__float relative will-change-transform">
+              <div class="mc-dj-frame__inner relative overflow-hidden rounded-2xl border border-gray-800/90 shadow-[0_16px_48px_rgba(0,0,0,0.45)] ring-1 ring-white/5 aspect-[4/3] bg-gray-900 transition-shadow duration-500 group-hover:shadow-[0_24px_60px_rgba(236,72,153,0.18)] group-hover:border-primary-500/30">
+                <img
+                  src="/images/mc-cal-dj-1.png"
+                  alt="MC Cal at the decks, mixing on a controller at a party"
+                  class="mc-dj-frame__img h-full w-full object-cover transition-[transform,filter] duration-700 ease-out group-hover:scale-[1.08] group-hover:brightness-110"
+                  loading="lazy"
+                  decoding="async"
+                >
+                <div
+                  class="mc-dj-frame__shine pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100"
+                  aria-hidden="true"
+                />
+              </div>
+            </div>
+          </figure>
+          <figure class="mc-dj-frame mc-dj-frame--2 group relative [perspective:900px]">
+            <div class="mc-dj-frame__float relative will-change-transform">
+              <div class="mc-dj-frame__inner relative overflow-hidden rounded-2xl border border-gray-800/90 shadow-[0_16px_48px_rgba(0,0,0,0.45)] ring-1 ring-white/5 aspect-[4/3] bg-gray-900 transition-shadow duration-500 group-hover:shadow-[0_24px_60px_rgba(236,72,153,0.18)] group-hover:border-primary-500/30">
+                <img
+                  src="/images/mc-cal-dj-2.png"
+                  alt="MC Cal behind the DJ booth, pointing at the crowd"
+                  class="mc-dj-frame__img h-full w-full object-cover transition-[transform,filter] duration-700 ease-out group-hover:scale-[1.08] group-hover:brightness-110"
+                  loading="lazy"
+                  decoding="async"
+                >
+                <div
+                  class="mc-dj-frame__shine pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100"
+                  aria-hidden="true"
+                />
+              </div>
+            </div>
+          </figure>
+          <figure class="mc-dj-frame mc-dj-frame--3 group relative [perspective:900px]">
+            <div class="mc-dj-frame__float relative will-change-transform">
+              <div class="mc-dj-frame__inner relative overflow-hidden rounded-2xl border border-gray-800/90 shadow-[0_16px_48px_rgba(0,0,0,0.45)] ring-1 ring-white/5 aspect-[4/3] bg-gray-900 transition-shadow duration-500 group-hover:shadow-[0_24px_60px_rgba(236,72,153,0.18)] group-hover:border-primary-500/30">
+                <img
+                  src="/images/mc-cal-dj-3.png"
+                  alt="MC Cal DJing outdoors under a canopy at night"
+                  class="mc-dj-frame__img h-full w-full object-cover transition-[transform,filter] duration-700 ease-out group-hover:scale-[1.08] group-hover:brightness-110"
+                  loading="lazy"
+                  decoding="async"
+                >
+                <div
+                  class="mc-dj-frame__shine pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100"
+                  aria-hidden="true"
+                />
+              </div>
+            </div>
+          </figure>
+        </div>
+
+        <a
+          href="https://soundcloud.com/user-205056444"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="group relative mt-10 flex max-w-2xl mx-auto flex-col gap-5 overflow-hidden rounded-3xl border border-orange-500/35 bg-gradient-to-br from-gray-900/95 via-[#140905] to-gray-950 px-6 py-6 shadow-[0_0_48px_rgba(255,85,0,0.14)] transition hover:border-orange-400/55 hover:shadow-[0_0_60px_rgba(255,85,0,0.22)] sm:flex-row sm:items-center sm:justify-between sm:gap-8"
+        >
+          <div class="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#FF5500]/15 blur-3xl" />
+          <div class="pointer-events-none absolute -bottom-12 -left-8 h-32 w-32 rounded-full bg-primary-500/10 blur-3xl" />
+          <div class="relative flex items-center gap-4 min-w-0">
+            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#FF5500]/20 ring-1 ring-[#FF5500]/40">
+              <UIcon name="i-simple-icons-soundcloud" class="h-9 w-9 text-[#FF5500]" />
+            </div>
+            <div class="text-left min-w-0">
+              <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-400/90">
+                MC Cal on SoundCloud
+              </p>
+              <p class="font-[family-name:Bebas_Neue,sans-serif] text-3xl tracking-wide text-white group-hover:text-orange-100 transition-colors">
+                Go listen now
+              </p>
+              <p class="text-sm text-gray-500">
+                Opens in a new tab
+              </p>
+            </div>
+          </div>
+          <div class="relative flex items-center justify-between gap-6 sm:justify-end sm:shrink-0">
+            <div class="mc-eq flex h-12 items-end gap-1.5" aria-hidden="true">
+              <span class="mc-eq__bar rounded-full bg-gradient-to-t from-[#FF5500] to-orange-300" />
+              <span class="mc-eq__bar rounded-full bg-gradient-to-t from-[#FF5500] to-orange-300" />
+              <span class="mc-eq__bar rounded-full bg-gradient-to-t from-[#FF5500] to-orange-300" />
+              <span class="mc-eq__bar rounded-full bg-gradient-to-t from-[#FF5500] to-orange-300" />
+              <span class="mc-eq__bar rounded-full bg-gradient-to-t from-[#FF5500] to-orange-300" />
+              <span class="mc-eq__bar rounded-full bg-gradient-to-t from-[#FF5500] to-orange-300" />
+              <span class="mc-eq__bar rounded-full bg-gradient-to-t from-[#FF5500] to-orange-300" />
+            </div>
+            <UIcon
+              name="i-lucide-arrow-up-right"
+              class="h-7 w-7 shrink-0 text-orange-400 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            />
+          </div>
+        </a>
+      </div>
     </section>
 
     <!-- Pricing / Non-Profit Section -->
@@ -366,6 +475,178 @@ const galleryImages = [
     radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.10), transparent 55%),
     radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.06), transparent 60%),
     repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px);
+}
+
+/* MC Cal photo strip — stagger in, float, hover tilt + shine */
+.mc-dj-frame {
+  transform-style: preserve-3d;
+}
+
+.mc-dj-frame__inner {
+  animation: mc-dj-debut 1.05s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.mc-dj-frame--1 .mc-dj-frame__inner {
+  animation-delay: 0.06s;
+}
+
+.mc-dj-frame--2 .mc-dj-frame__inner {
+  animation-delay: 0.18s;
+}
+
+.mc-dj-frame--3 .mc-dj-frame__inner {
+  animation-delay: 0.32s;
+}
+
+.mc-dj-frame--1 .mc-dj-frame__float {
+  animation: mc-dj-float-a 5.8s ease-in-out infinite;
+}
+
+.mc-dj-frame--2 .mc-dj-frame__float {
+  animation: mc-dj-float-b 6.4s ease-in-out 0.35s infinite;
+}
+
+.mc-dj-frame--3 .mc-dj-frame__float {
+  animation: mc-dj-float-a 5.2s ease-in-out 0.7s infinite reverse;
+}
+
+.mc-dj-frame.group:hover .mc-dj-frame__float {
+  animation: none !important;
+  transform: translateY(-12px) rotateY(-4deg) rotateX(2deg) scale(1.03);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mc-dj-frame__shine {
+  mix-blend-mode: overlay;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.18) 48%,
+    rgba(236, 72, 153, 0.25) 52%,
+    transparent 65%
+  );
+  background-size: 220% 100%;
+  background-position: 100% 0;
+}
+
+.mc-dj-frame.group:hover .mc-dj-frame__shine {
+  animation: mc-dj-shine-bg 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes mc-dj-debut {
+  from {
+    opacity: 0.72;
+    transform: translateY(36px) scale(0.93) rotateX(10deg);
+    filter: blur(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes mc-dj-float-a {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.6deg);
+  }
+
+  50% {
+    transform: translateY(-11px) rotate(0.75deg);
+  }
+}
+
+@keyframes mc-dj-float-b {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0.5deg);
+  }
+
+  50% {
+    transform: translateY(-13px) rotate(-0.85deg);
+  }
+}
+
+@keyframes mc-dj-shine-bg {
+  from {
+    background-position: 100% 0;
+    opacity: 0;
+  }
+
+  25% {
+    opacity: 1;
+  }
+
+  to {
+    background-position: 0% 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-dj-frame__inner,
+  .mc-dj-frame--1 .mc-dj-frame__float,
+  .mc-dj-frame--2 .mc-dj-frame__float,
+  .mc-dj-frame--3 .mc-dj-frame__float {
+    animation: none !important;
+  }
+
+  .mc-dj-frame.group:hover .mc-dj-frame__float {
+    transform: none !important;
+  }
+
+  .mc-dj-frame.group:hover .mc-dj-frame__shine {
+    animation: none !important;
+  }
+}
+
+.mc-eq__bar {
+  width: 0.35rem;
+  height: 2.5rem;
+  transform-origin: bottom center;
+  animation: mc-eq-bounce 0.85s ease-in-out infinite alternate;
+}
+
+.mc-eq__bar:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.mc-eq__bar:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.mc-eq__bar:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+.mc-eq__bar:nth-child(4) {
+  animation-delay: 0.08s;
+}
+
+.mc-eq__bar:nth-child(5) {
+  animation-delay: 0.2s;
+}
+
+.mc-eq__bar:nth-child(6) {
+  animation-delay: 0.16s;
+}
+
+.mc-eq__bar:nth-child(7) {
+  animation-delay: 0.04s;
+}
+
+@keyframes mc-eq-bounce {
+  from {
+    transform: scaleY(0.25);
+    opacity: 0.65;
+  }
+
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
 }
 
 </style>
