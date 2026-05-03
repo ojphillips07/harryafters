@@ -487,7 +487,11 @@ async function spotifyEnqueue(accessToken, uri) {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` }
   })
-  if (res.status === 204) return true
+  // Spotify returns 204 No Content per docs; some clients/CDNs return 200 with a tiny body.
+  if (res.ok) {
+    await res.text().catch(() => {})
+    return true
+  }
   const text = await res.text().catch(() => '')
   console.warn(`[jukebox-worker] /queue ${res.status}: ${text.slice(0, 200)}`)
   return false
