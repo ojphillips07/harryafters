@@ -36,6 +36,20 @@ export default defineNuxtConfig({
      */
     ticketsLive: false,
 
+    /**
+     * Spotify Web API (jukebox).
+     * - Search uses client_credentials only (no user login required).
+     * - Playback control runs on the home-server worker against the host’s Premium
+     *   account. The one-time OAuth bootstrap lives behind /api/admin/jukebox/spotify/...
+     *
+     * Register the app at https://developer.spotify.com/dashboard, then add
+     * `${NUXT_PUBLIC_SITE_URL}/api/admin/jukebox/spotify/callback` to the app’s
+     * Redirect URIs.
+     */
+    spotifyClientId: '',
+    spotifyClientSecret: '',
+    spotifyRedirectUri: '',
+
     public: {
       /** Public site origin used for Stripe success/cancel URLs and ticket links. */
       siteUrl: ''
