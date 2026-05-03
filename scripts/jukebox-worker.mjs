@@ -33,6 +33,9 @@
  *   - Playback control requires an active device. If `GET /me/player` returns
  *     204 / no device, we idle until the host hits play on a device.
  *   - Premium-only. `403 PREMIUM_REQUIRED` will surface on play/queue calls.
+ *   - When the jukebox track finishes (playback stops or Spotify advances to
+ *     something else), we mark the `now_playing` row `played` so it disappears
+ *     from the guest queue list — including the last song with nothing queued.
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -89,9 +92,10 @@ async function tick() {
   const accessToken = await getAccessToken(refresh)
   const player = await fetchPlayer(accessToken)
 
-  // No active device → idle, but keep the previous now_playing snapshot until
-  // we have something to say.
+  // No active device → clear stuck `now_playing` (e.g. last song finished),
+  // then idle the snapshot.
   if (!player) {
+    await finalizeEndedNowPlaying(null, null, null)
     await writeNowPlaying({
       queue_id: null,
       track_uri: null,
@@ -113,6 +117,9 @@ async function tick() {
   const playerTrackUri = currentTrack?.uri ?? null
   const progressMs = player.progress_ms ?? 0
   const durationMs = currentTrack?.duration_ms ?? 0
+
+  // Spotify moved past our jukebox track → mark DB row `played` so it leaves the queue list.
+  await finalizeEndedNowPlaying(player, playerTrackId, player.item?.type)
 
   // Reconcile statuses: if Spotify is now playing a track that matches a
   // queue row we previously enqueued, flip that row to now_playing and bury
@@ -255,6 +262,54 @@ async function markIdle() {
     device_name: null,
     is_playing: false
   })
+}
+
+/** Mark the single `now_playing` row `played` when it is safe (id + status guard). */
+async function markQueueRowPlayed(id) {
+  const { error } = await supabase
+    .from('song_queue')
+    .update({
+      status: 'played',
+      played_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .eq('status', 'now_playing')
+  if (error) {
+    console.warn('[jukebox-worker] markQueueRowPlayed failed:', error.message)
+  }
+}
+
+/**
+ * When Spotify no longer reflects our jukebox "now playing" row, mark it done
+ * so GET /api/jukebox/queue stops listing it (including the last song).
+ */
+async function finalizeEndedNowPlaying(player, playerTrackId, itemType) {
+  const { data: dbPlaying } = await supabase
+    .from('song_queue')
+    .select('id, track_id')
+    .eq('status', 'now_playing')
+    .order('first_added_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (!dbPlaying) return
+
+  if (!player) {
+    log(`Marked queue row played (no active Spotify player): ${dbPlaying.track_id}`)
+    await markQueueRowPlayed(dbPlaying.id)
+    return
+  }
+
+  if (itemType && itemType !== 'track') {
+    log(`Marked queue row played (non-track context): ${dbPlaying.track_id}`)
+    await markQueueRowPlayed(dbPlaying.id)
+    return
+  }
+
+  if (playerTrackId && playerTrackId !== dbPlaying.track_id) {
+    log(`Marked queue row played (Spotify now on another track): ${dbPlaying.track_id}`)
+    await markQueueRowPlayed(dbPlaying.id)
+  }
 }
 
 /* ----- Spotify helpers ----- */
