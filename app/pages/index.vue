@@ -67,6 +67,13 @@ const galleryImages = [
   { src: '/images/venue-cabin.png', alt: 'Harry’s garden cabin at night with lights on' },
   { src: '/images/venue-lawn.png', alt: 'Lawns and trees at Harry’s after dark' }
 ] as const
+
+const { data: siteMode } = await useFetch<{ ticketsLive: boolean }>('/api/site-mode', { key: 'site-mode' })
+const ticketsLive = computed(() => siteMode.value?.ticketsLive === true)
+
+const { data: pricing } = await useFetch<{
+  labels: { total: string, booking: string, entry: string } | null
+}>('/api/ticket-pricing')
 </script>
 
 <template>
@@ -102,12 +109,25 @@ const galleryImages = [
       <div class="w-full px-4 sm:px-6 lg:px-10">
         <div class="max-w-4xl mx-auto text-center">
           <div class="mb-6 flex flex-wrap items-center justify-center gap-2">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium backdrop-blur">
+            <div
+              v-if="!ticketsLive"
+              class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium backdrop-blur"
+            >
               <span class="relative flex h-2 w-2">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
               </span>
               Registration Open
+            </div>
+            <div
+              v-else
+              class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 text-sm font-bold backdrop-blur"
+            >
+              <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              </span>
+              Tickets on sale
             </div>
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-950/40 border border-white/15 text-gray-200 text-sm font-semibold backdrop-blur">
               <span class="inline-flex rounded-full h-2 w-2 bg-accent-500"></span>
@@ -117,33 +137,67 @@ const galleryImages = [
 
           <HeroRollingCube />
 
-          <p class="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto mb-4 leading-relaxed">
-            <span class="font-semibold"><EventBrandName typography="inherit" stable /></span> is gonna be sick — everyone’s gonna be there.
-            <span class="block mt-2 font-semibold text-white">Fairfax Year 13 Prom After Party.</span>
-          </p>
-          <p class="text-base md:text-lg text-primary-200/95 max-w-xl mx-auto mb-10 leading-snug">
-            Planning on coming? <span class="font-semibold text-white">Register your interest</span> — it’s how you’ll get access to a ticket when they go on sale.
-          </p>
+          <template v-if="!ticketsLive">
+            <p class="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto mb-4 leading-relaxed">
+              <span class="font-semibold"><EventBrandName typography="inherit" stable /></span> is gonna be sick — everyone’s gonna be there.
+              <span class="block mt-2 font-semibold text-white">Fairfax Year 13 Prom After Party.</span>
+            </p>
+            <p class="text-base md:text-lg text-primary-200/95 max-w-xl mx-auto mb-10 leading-snug">
+              Planning on coming? <span class="font-semibold text-white">Register your interest</span> — it’s how you’ll get access to a ticket when they go on sale.
+            </p>
 
-          <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <UButton
-              to="#register"
-              size="xl"
-              color="primary"
-              class="px-8 py-4 font-bold text-lg rounded-2xl transition-transform hover:scale-105"
-            >
-              Register Interest
-            </UButton>
-            <UButton
-              to="#what-is-it"
-              size="xl"
-              variant="ghost"
-              color="neutral"
-              class="px-8 py-4 font-bold text-lg rounded-2xl backdrop-blur bg-gray-950/10 border border-white/10"
-            >
-              Learn More
-            </UButton>
-          </div>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <UButton
+                to="#register"
+                size="xl"
+                color="primary"
+                class="px-8 py-4 font-bold text-lg rounded-2xl transition-transform hover:scale-105"
+              >
+                Register Interest
+              </UButton>
+              <UButton
+                to="#what-is-it"
+                size="xl"
+                variant="ghost"
+                color="neutral"
+                class="px-8 py-4 font-bold text-lg rounded-2xl backdrop-blur bg-gray-950/10 border border-white/10"
+              >
+                Learn More
+              </UButton>
+            </div>
+          </template>
+          <template v-else>
+            <p class="text-xl md:text-2xl text-gray-100 max-w-2xl mx-auto mb-4 leading-relaxed">
+              <span class="font-semibold"><EventBrandName typography="inherit" stable /></span> — tickets are <span class="text-emerald-300 font-bold">live</span>.
+              <span class="block mt-2 font-semibold text-white">Fairfax Year 13 Prom After Party.</span>
+            </p>
+            <p class="text-base md:text-lg text-gray-300 max-w-xl mx-auto mb-3 leading-snug">
+              Grab yours on the next screen — we’ll email your QR as soon as payment clears.
+              <span
+                v-if="pricing?.labels?.total"
+                class="mt-2 block text-white font-semibold"
+              >Checkout from {{ pricing.labels.total }} total <span class="text-gray-500 font-normal">(incl. card fee)</span>.</span>
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
+              <UButton
+                to="/buy"
+                size="xl"
+                color="primary"
+                class="px-8 py-4 font-bold text-lg rounded-2xl transition-transform hover:scale-105 shadow-lg shadow-primary-500/25"
+              >
+                Buy tickets
+              </UButton>
+              <UButton
+                to="#get-ticket"
+                size="xl"
+                variant="ghost"
+                color="neutral"
+                class="px-8 py-4 font-bold text-lg rounded-2xl backdrop-blur bg-gray-950/10 border border-white/10"
+              >
+                Price &amp; details
+              </UButton>
+            </div>
+          </template>
         </div>
       </div>
     </section>
@@ -172,7 +226,7 @@ const galleryImages = [
             </div>
           </div>
         </div>
-        
+
         <div class="relative group">
           <div class="absolute -inset-1 bg-gradient-to-r from-primary-500 to-accent-500 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
           <img
@@ -296,9 +350,14 @@ const galleryImages = [
     </section>
 
     <!-- Pricing / Non-Profit Section -->
-    <section class="py-24 bg-gray-900/30 border-y border-gray-900">
+    <section
+      id="get-ticket"
+      class="py-24 bg-gray-900/30 border-y border-gray-900"
+    >
       <div class="max-w-4xl mx-auto px-4 text-center">
-        <h2 class="text-3xl font-bold mb-6">Not asking for much</h2>
+        <h2 class="text-3xl font-bold mb-6">
+          {{ ticketsLive ? 'Here’s the deal' : 'Not asking for much' }}
+        </h2>
         <div class="p-8 rounded-3xl bg-gray-950 border border-primary-500/20 glow-box">
           <p class="text-xl md:text-2xl font-medium mb-4">Tickets are <span class="text-primary-500 font-black">£6.30</span> total <span class="text-gray-500 text-lg font-normal">(including a separate card/booking fee)</span></p>
           <p class="text-gray-400 leading-relaxed">
@@ -308,15 +367,38 @@ const galleryImages = [
           <p class="mt-4 text-gray-400 leading-relaxed">
             <span class="text-white font-semibold">Bring your own drinks (BYOB)</span> — that’s how we’re running it. Bring what you want; we’re not trying to profit, just cover the party and stretch to free drinks where we can.
           </p>
-          <p class="mt-6 text-sm text-gray-500 leading-relaxed border-t border-gray-800 pt-6">
+          <div
+            v-if="ticketsLive"
+            class="mt-8 flex flex-col items-center gap-4 border-t border-gray-800 pt-8"
+          >
+            <UButton
+              to="/buy"
+              size="xl"
+              color="primary"
+              class="px-10 py-4 font-bold text-lg rounded-2xl"
+            >
+              Continue to checkout
+            </UButton>
+            <p class="text-xs text-gray-500 max-w-md">
+              You’ll enter your name and email on the next page — same flow whether you registered interest or not.
+            </p>
+          </div>
+          <p
+            v-else
+            class="mt-6 text-sm text-gray-500 leading-relaxed border-t border-gray-800 pt-6"
+          >
             Tickets won’t be sold blindly — <span class="text-gray-300">register your interest</span> so we know you’re coming and can reach you when it’s time to buy.
           </p>
         </div>
       </div>
     </section>
 
-    <!-- Registration Section -->
-    <section id="register" class="py-24 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
+    <!-- Registration Section (interest phase only — tickets live uses /buy) -->
+    <section
+      v-if="!ticketsLive"
+      id="register"
+      class="py-24 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto"
+    >
       <div class="text-center mb-12 space-y-4">
         <h2 class="text-4xl font-black mb-2">REGISTER YOUR INTEREST</h2>
         <p class="text-lg text-gray-100 font-medium max-w-2xl mx-auto">
@@ -440,28 +522,23 @@ const galleryImages = [
       </figure>
     </section>
 
-    <!-- Stripe Skeleton (Hidden/Disabled) -->
-    <div class="hidden">
-      <!-- 
-        Future Stripe Integration:
-        - Checkout session creation in /server/api/stripe/checkout.post.ts
-        - Webhook handling in /server/api/stripe/webhook.post.ts
-        - Disabled until interest phase is complete.
-      -->
-    </div>
+    <!-- Stripe skeleton — checkout lives at /api/checkout; webhook at /api/stripe/webhook -->
+    <div class="hidden" />
 
     <!-- Floating CTA -->
     <div class="fixed bottom-4 right-4 z-50">
       <UButton
-        to="#register"
+        :to="ticketsLive ? '/buy' : '#register'"
         color="primary"
         size="lg"
-        icon="i-lucide-arrow-down-right"
+        :icon="ticketsLive ? 'i-lucide-ticket' : 'i-lucide-arrow-down-right'"
         class="rounded-full bg-primary-500 hover:bg-primary-600 text-white shadow-xl shadow-primary-500/35 border border-white/10"
       >
-        Register interest
+        {{ ticketsLive ? 'Buy tickets' : 'Register interest' }}
       </UButton>
     </div>
+
+    <InterestPopupModal v-if="!ticketsLive" />
   </div>
 </template>
 

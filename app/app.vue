@@ -16,14 +16,19 @@ useHead({
   }
 })
 
-const title = 'Fairfax Afters · The After Party · The Afters | Year 13 Prom After Party'
-const description = 'The Afters, Afters at Harry\'s, Fairfax Afters, The After Party — same night. Everyone’s gonna be there. Register your interest for the Fairfax Year 13 prom after party.'
+const { data: siteModeFooter } = useFetch<{ ticketsLive: boolean }>('/api/site-mode', { key: 'site-mode' })
+const ticketsLiveFooter = computed(() => siteModeFooter.value?.ticketsLive === true)
+
+const titleDefault = 'Fairfax Afters · The After Party · The Afters | Year 13 Prom After Party'
+const descriptionDefault = 'The Afters, Afters at Harry\'s, Fairfax Afters, The After Party — same night. Everyone’s gonna be there. Register your interest for the Fairfax Year 13 prom after party.'
+const titleLive = 'Get tickets — Harry Afters · Fairfax Year 13 prom after party'
+const descriptionLive = 'Tickets are on sale for Harry Afters — the Fairfax Year 13 prom after party at Harry’s.'
 
 useSeoMeta({
-  title,
-  description,
-  ogTitle: title,
-  ogDescription: description,
+  title: computed(() => (ticketsLiveFooter.value ? titleLive : titleDefault)),
+  description: computed(() => (ticketsLiveFooter.value ? descriptionLive : descriptionDefault)),
+  ogTitle: computed(() => (ticketsLiveFooter.value ? titleLive : titleDefault)),
+  ogDescription: computed(() => (ticketsLiveFooter.value ? descriptionLive : descriptionDefault)),
   twitterCard: 'summary_large_image'
 })
 </script>
@@ -33,8 +38,6 @@ useSeoMeta({
     <UMain class="min-h-0 min-w-0 flex-1">
       <NuxtPage />
     </UMain>
-
-    <InterestPopupModal />
 
     <UFooter class="shrink-0 border-t border-gray-800 bg-gray-950/50 backdrop-blur-md py-8">
       <template #left>
@@ -52,8 +55,8 @@ useSeoMeta({
       <template #right>
         <div class="flex gap-4">
           <UButton
-            label="Register Interest"
-            to="#register"
+            :label="ticketsLiveFooter ? 'Buy tickets' : 'Register interest'"
+            :to="ticketsLiveFooter ? '/buy' : '#register'"
             color="primary"
             variant="ghost"
             size="sm"

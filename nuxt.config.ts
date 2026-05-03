@@ -30,6 +30,12 @@ export default defineNuxtConfig({
     /** Booking fee in pence (separate Stripe line). Default 30p. */
     bookingFeePence: '30',
 
+    /**
+     * Homepage “tickets live” mode. Set `NUXT_TICKETS_LIVE=true` when sales open.
+     * Read via GET /api/site-mode (also used by SSR on `/`).
+     */
+    ticketsLive: false,
+
     public: {
       /** Public site origin used for Stripe success/cancel URLs and ticket links. */
       siteUrl: ''
@@ -43,7 +49,10 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   routeRules: {
-    '/': { prerender: true },
+    /**
+     * `/` is not prerendered so `NUXT_TICKETS_LIVE` takes effect on the next deploy
+     * without rebuilding static HTML from an old flag.
+     */
     '/favicon.ico': { redirect: { to: '/favicon.png', statusCode: 308 } }
   },
 
