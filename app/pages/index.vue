@@ -71,13 +71,26 @@ const galleryImages = [
 const { data: siteMode } = await useFetch<{ ticketsLive: boolean }>('/api/site-mode', { key: 'site-mode' })
 const ticketsLive = computed(() => siteMode.value?.ticketsLive === true)
 
+const route = useRoute()
+const runtimeConfig = useRuntimeConfig()
+const partyHubHomepageEnv = computed(() => {
+  const v = runtimeConfig.public.partyHubHomepage as unknown
+  return v === true || v === 'true' || v === '1'
+})
+/** Party hub on `/` when env is set; add `?site=full` for the full marketing homepage. */
+const showPartyHubOnHome = computed(() => partyHubHomepageEnv.value && String(route.query.site ?? '') !== 'full')
+
 const { data: pricing } = await useFetch<{
   labels: { total: string, booking: string, entry: string } | null
 }>('/api/ticket-pricing')
 </script>
 
 <template>
-  <div class="relative overflow-clip bg-gray-950">
+  <PartyHubLanding v-if="showPartyHubOnHome" />
+  <div
+    v-else
+    class="relative overflow-clip bg-gray-950"
+  >
     <!-- Background glows: keep inside layout box (no negative offsets) so they don’t extend document scroll past the footer -->
     <div
       class="pointer-events-none absolute -left-[20%] -top-[20%] h-[60%] w-[60%] bg-primary-500/10 blur-[120px] rounded-full"
@@ -91,7 +104,10 @@ const { data: pricing } = await useFetch<{
       <!-- Outside hero image (pre-rotated + optimized) -->
       <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <picture>
-          <source srcset="/images/hero-venue.webp" type="image/webp">
+          <source
+            srcset="/images/hero-venue.webp"
+            type="image/webp"
+          >
           <img
             src="/images/hero-venue.jpg"
             alt="Harry’s garden cabin at night, lit up for the after party"
@@ -114,8 +130,8 @@ const { data: pricing } = await useFetch<{
               class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium backdrop-blur"
             >
               <span class="relative flex h-2 w-2">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75" />
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-primary-500" />
               </span>
               Registration Open
             </div>
@@ -124,13 +140,13 @@ const { data: pricing } = await useFetch<{
               class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-200 text-sm font-bold backdrop-blur"
             >
               <span class="relative flex h-2 w-2">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
               </span>
               Tickets on sale
             </div>
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-950/40 border border-white/15 text-gray-200 text-sm font-semibold backdrop-blur">
-              <span class="inline-flex rounded-full h-2 w-2 bg-accent-500"></span>
+              <span class="inline-flex rounded-full h-2 w-2 bg-accent-500" />
               <span><span class="text-white font-black">25 June</span> · Starts <span class="text-white font-black">10pm</span></span>
             </div>
           </div>
@@ -139,7 +155,10 @@ const { data: pricing } = await useFetch<{
 
           <template v-if="!ticketsLive">
             <p class="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto mb-4 leading-relaxed">
-              <span class="font-semibold"><EventBrandName typography="inherit" stable /></span> is gonna be sick — everyone’s gonna be there.
+              <span class="font-semibold"><EventBrandName
+                typography="inherit"
+                stable
+              /></span> is gonna be sick — everyone’s gonna be there.
               <span class="block mt-2 font-semibold text-white">Fairfax Year 13 Prom After Party.</span>
             </p>
             <p class="text-base md:text-lg text-primary-200/95 max-w-xl mx-auto mb-10 leading-snug">
@@ -168,7 +187,10 @@ const { data: pricing } = await useFetch<{
           </template>
           <template v-else>
             <p class="text-xl md:text-2xl text-gray-100 max-w-2xl mx-auto mb-4 leading-relaxed">
-              <span class="font-semibold"><EventBrandName typography="inherit" stable /></span> — tickets are <span class="text-emerald-300 font-bold">live</span>.
+              <span class="font-semibold"><EventBrandName
+                typography="inherit"
+                stable
+              /></span> — tickets are <span class="text-emerald-300 font-bold">live</span>.
               <span class="block mt-2 font-semibold text-white">Fairfax Year 13 Prom After Party.</span>
             </p>
             <p class="text-base md:text-lg text-gray-300 max-w-xl mx-auto mb-3 leading-snug">
@@ -203,7 +225,10 @@ const { data: pricing } = await useFetch<{
     </section>
 
     <!-- Info Section -->
-    <section id="what-is-it" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <section
+      id="what-is-it"
+      class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto"
+    >
       <div class="grid md:grid-cols-2 gap-12 items-center">
         <div class="space-y-8">
           <h2 class="text-3xl md:text-4xl font-bold">
@@ -215,20 +240,34 @@ const { data: pricing } = await useFetch<{
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div class="p-6 rounded-2xl bg-gray-900/50 border border-gray-800 glow-box">
-              <UIcon name="i-lucide-users" class="w-8 h-8 text-primary-500 mb-4" />
-              <h3 class="font-bold mb-2">Everyone's Invited</h3>
-              <p class="text-sm text-gray-500">The whole of Year 13 — one last big night at Harry’s.</p>
+              <UIcon
+                name="i-lucide-users"
+                class="w-8 h-8 text-primary-500 mb-4"
+              />
+              <h3 class="font-bold mb-2">
+                Everyone's Invited
+              </h3>
+              <p class="text-sm text-gray-500">
+                The whole of Year 13 — one last big night at Harry’s.
+              </p>
             </div>
             <div class="p-6 rounded-2xl bg-gray-900/50 border border-gray-800 glow-box">
-              <UIcon name="i-lucide-beer" class="w-8 h-8 text-accent-500 mb-4" />
-              <h3 class="font-bold mb-2">BYOB</h3>
-              <p class="text-sm text-gray-500">Bring your own drinks. Ticket cash covers setup; surplus goes on free drinks.</p>
+              <UIcon
+                name="i-lucide-beer"
+                class="w-8 h-8 text-accent-500 mb-4"
+              />
+              <h3 class="font-bold mb-2">
+                BYOB
+              </h3>
+              <p class="text-sm text-gray-500">
+                Bring your own drinks. Ticket cash covers setup; surplus goes on free drinks.
+              </p>
             </div>
           </div>
         </div>
 
         <div class="relative group">
-          <div class="absolute -inset-1 bg-gradient-to-r from-primary-500 to-accent-500 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+          <div class="absolute -inset-1 bg-gradient-to-r from-primary-500 to-accent-500 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
           <img
             src="/images/venue-pergola.png"
             alt="Garden pergola and seating at Harry’s"
@@ -242,7 +281,10 @@ const { data: pricing } = await useFetch<{
       <div class="mt-20 pt-16 border-t border-gray-800">
         <div class="text-center lg:text-left max-w-3xl mx-auto lg:mx-0 mb-10">
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium mb-4">
-            <UIcon name="i-lucide-disc-3" class="w-4 h-4" />
+            <UIcon
+              name="i-lucide-disc-3"
+              class="w-4 h-4"
+            />
             Music
           </div>
           <h3 class="text-2xl md:text-3xl font-bold text-white mb-4">
@@ -316,7 +358,10 @@ const { data: pricing } = await useFetch<{
           <div class="pointer-events-none absolute -bottom-12 -left-8 h-32 w-32 rounded-full bg-primary-500/10 blur-3xl" />
           <div class="relative flex items-center gap-4 min-w-0">
             <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#FF5500]/20 ring-1 ring-[#FF5500]/40">
-              <UIcon name="i-simple-icons-soundcloud" class="h-9 w-9 text-[#FF5500]" />
+              <UIcon
+                name="i-simple-icons-soundcloud"
+                class="h-9 w-9 text-[#FF5500]"
+              />
             </div>
             <div class="text-left min-w-0">
               <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-400/90">
@@ -331,7 +376,10 @@ const { data: pricing } = await useFetch<{
             </div>
           </div>
           <div class="relative flex items-center justify-between gap-6 sm:justify-end sm:shrink-0">
-            <div class="mc-eq flex h-12 items-end gap-1.5" aria-hidden="true">
+            <div
+              class="mc-eq flex h-12 items-end gap-1.5"
+              aria-hidden="true"
+            >
               <span class="mc-eq__bar rounded-full bg-gradient-to-t from-[#FF5500] to-orange-300" />
               <span class="mc-eq__bar rounded-full bg-gradient-to-t from-[#FF5500] to-orange-300" />
               <span class="mc-eq__bar rounded-full bg-gradient-to-t from-[#FF5500] to-orange-300" />
@@ -359,7 +407,9 @@ const { data: pricing } = await useFetch<{
           {{ ticketsLive ? 'Here’s the deal' : 'Not asking for much' }}
         </h2>
         <div class="p-8 rounded-3xl bg-gray-950 border border-primary-500/20 glow-box">
-          <p class="text-xl md:text-2xl font-medium mb-4">Tickets are <span class="text-primary-500 font-black">£6.30</span> total <span class="text-gray-500 text-lg font-normal">(including a separate card/booking fee)</span></p>
+          <p class="text-xl md:text-2xl font-medium mb-4">
+            Tickets are <span class="text-primary-500 font-black">£6.30</span> total <span class="text-gray-500 text-lg font-normal">(including a separate card/booking fee)</span>
+          </p>
           <p class="text-gray-400 leading-relaxed">
             We’re taking over Harry’s — lights, music, and drinks. Everything from ticket sales goes towards <span class="text-white font-semibold">setup</span>: lights, sound, cleanup, etc.
             <span class="text-white font-semibold"> Any money left after that goes on free drinks</span> for everyone on the night.
@@ -400,7 +450,9 @@ const { data: pricing } = await useFetch<{
       class="py-24 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto"
     >
       <div class="text-center mb-12 space-y-4">
-        <h2 class="text-4xl font-black mb-2">REGISTER YOUR INTEREST</h2>
+        <h2 class="text-4xl font-black mb-2">
+          REGISTER YOUR INTEREST
+        </h2>
         <p class="text-lg text-gray-100 font-medium max-w-2xl mx-auto">
           If you plan on attending, you need to register here — this list is how we’ll contact you when tickets go live. Skip this step and you risk missing out.
         </p>
@@ -410,18 +462,46 @@ const { data: pricing } = await useFetch<{
         </p>
       </div>
 
-      <div v-if="!registered" class="p-8 rounded-3xl bg-gray-900/50 border border-gray-800">
-        <form @submit.prevent="onRegister" class="space-y-6">
-          <UFormField label="Full Name" name="name">
-            <UInput v-model="form.name" placeholder="John Doe" size="xl" class="w-full" required />
+      <div
+        v-if="!registered"
+        class="p-8 rounded-3xl bg-gray-900/50 border border-gray-800"
+      >
+        <form
+          class="space-y-6"
+          @submit.prevent="onRegister"
+        >
+          <UFormField
+            label="Full Name"
+            name="name"
+          >
+            <UInput
+              v-model="form.name"
+              placeholder="John Doe"
+              size="xl"
+              class="w-full"
+              required
+            />
           </UFormField>
 
-          <UFormField label="Email" name="email">
-            <UInput v-model="form.email" type="email" placeholder="you@example.com" size="xl" class="w-full" required />
+          <UFormField
+            label="Email"
+            name="email"
+          >
+            <UInput
+              v-model="form.email"
+              type="email"
+              placeholder="you@example.com"
+              size="xl"
+              class="w-full"
+              required
+            />
           </UFormField>
 
           <!-- Honeypot: hidden from real users, filled by bots. -->
-          <div aria-hidden="true" class="absolute left-[-10000px] top-auto h-px w-px overflow-hidden">
+          <div
+            aria-hidden="true"
+            class="absolute left-[-10000px] top-auto h-px w-px overflow-hidden"
+          >
             <label>
               Leave this field empty
               <input
@@ -445,14 +525,24 @@ const { data: pricing } = await useFetch<{
             Count Me In
           </UButton>
 
-          <p v-if="errorMessage" class="text-sm text-red-400 text-center" role="alert">
+          <p
+            v-if="errorMessage"
+            class="text-sm text-red-400 text-center"
+            role="alert"
+          >
             {{ errorMessage }}
           </p>
         </form>
       </div>
 
-      <div v-else class="p-12 rounded-3xl bg-primary-500/10 border border-primary-500/20 text-center animate-in fade-in zoom-in duration-500">
-        <UIcon name="i-lucide-check-circle" class="w-16 h-16 text-primary-500 mx-auto mb-4" />
+      <div
+        v-else
+        class="p-12 rounded-3xl bg-primary-500/10 border border-primary-500/20 text-center animate-in fade-in zoom-in duration-500"
+      >
+        <UIcon
+          name="i-lucide-check-circle"
+          class="w-16 h-16 text-primary-500 mx-auto mb-4"
+        />
         <h3 class="text-2xl font-bold mb-2">
           {{ alreadyRegistered ? 'Already on the list' : "You're on the list!" }}
         </h3>
@@ -462,10 +552,16 @@ const { data: pricing } = await useFetch<{
           </template>
           <template v-else>
             Thanks {{ form.name.split(' ')[0] }}! You’re on the list for ticket updates.
-            <span v-if="confirmationEmailed" class="block mt-3 text-gray-300">
+            <span
+              v-if="confirmationEmailed"
+              class="block mt-3 text-gray-300"
+            >
               We’ve sent a confirmation to <span class="text-white font-semibold">{{ form.email }}</span> — check inbox and spam. We’ll use the same address when <EventBrandName typography="inherit" /> tickets go on sale.
             </span>
-            <span v-else class="block mt-3 text-gray-300">
+            <span
+              v-else
+              class="block mt-3 text-gray-300"
+            >
               We’ll email <span class="text-white font-semibold">{{ form.email }}</span> when <EventBrandName typography="inherit" /> tickets go on sale.
             </span>
           </template>
@@ -477,26 +573,47 @@ const { data: pricing } = await useFetch<{
           <p class="font-semibold text-amber-50">
             Confirmation email wasn’t sent
           </p>
-          <p v-if="confirmationEmailIssue === 'missing_api_key'" class="mt-1 text-amber-100/90">
+          <p
+            v-if="confirmationEmailIssue === 'missing_api_key'"
+            class="mt-1 text-amber-100/90"
+          >
             The server doesn’t have <code class="text-amber-200">NUXT_RESEND_API_KEY</code> set (or the deploy wasn’t restarted after adding it).
           </p>
-          <p v-else-if="confirmationEmailIssue === 'missing_from'" class="mt-1 text-amber-100/90">
+          <p
+            v-else-if="confirmationEmailIssue === 'missing_from'"
+            class="mt-1 text-amber-100/90"
+          >
             Set <code class="text-amber-200">NUXT_RESEND_FROM</code> to a verified sender, e.g.
             <code class="text-amber-200">Harry Afters &lt;hello@send.yourdomain&gt;</code> — it must match a domain you’ve verified in Resend.
           </p>
-          <p v-else class="mt-1 text-amber-100/90 break-words">
+          <p
+            v-else
+            class="mt-1 text-amber-100/90 break-words"
+          >
             {{ confirmationEmailIssue }}
           </p>
         </div>
-        <UButton variant="ghost" class="mt-6" @click="registered = false">Back</UButton>
+        <UButton
+          variant="ghost"
+          class="mt-6"
+          @click="registered = false"
+        >
+          Back
+        </UButton>
       </div>
     </section>
 
     <!-- Gallery Section -->
     <section class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      <h2 class="text-3xl font-bold mb-12 text-center">The Gaff</h2>
+      <h2 class="text-3xl font-bold mb-12 text-center">
+        The Gaff
+      </h2>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div v-for="img in galleryImages" :key="img.src" class="relative group overflow-hidden rounded-2xl aspect-square">
+        <div
+          v-for="img in galleryImages"
+          :key="img.src"
+          class="relative group overflow-hidden rounded-2xl aspect-square"
+        >
           <img
             :src="img.src"
             class="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
@@ -725,5 +842,4 @@ const { data: pricing } = await useFetch<{
     opacity: 1;
   }
 }
-
 </style>

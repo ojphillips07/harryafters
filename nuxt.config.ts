@@ -5,9 +5,11 @@ export default defineNuxtConfig({
     '@nuxt/ui'
   ],
 
-  nitro: {
-    preset: 'vercel'
+  devtools: {
+    enabled: true
   },
+
+  css: ['~/assets/css/main.css'],
 
   /* Server-only secrets. Populated from NUXT_* env vars (Vercel env or local .env). */
   runtimeConfig: {
@@ -52,15 +54,14 @@ export default defineNuxtConfig({
 
     public: {
       /** Public site origin used for Stripe success/cancel URLs and ticket links. */
-      siteUrl: ''
+      siteUrl: '',
+      /**
+       * Party night: when true, `/` shows the jukebox party hub (unless `?site=full`).
+       * Set via `NUXT_PUBLIC_PARTY_HUB_HOMEPAGE=true` on Vercel / `.env`, redeploy.
+       */
+      partyHubHomepage: false
     }
   },
-
-  devtools: {
-    enabled: true
-  },
-
-  css: ['~/assets/css/main.css'],
 
   routeRules: {
     /**
@@ -71,6 +72,10 @@ export default defineNuxtConfig({
   },
 
   compatibilityDate: '2025-01-15',
+
+  nitro: {
+    preset: 'vercel'
+  },
 
   eslint: {
     config: {
