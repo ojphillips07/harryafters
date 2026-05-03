@@ -36,6 +36,9 @@
  *   - When the jukebox track finishes (playback stops or Spotify advances to
  *     something else), we mark the `now_playing` row `played` so it disappears
  *     from the guest queue list — including the last song with nothing queued.
+ *   - If Spotify is already playing a track that is still `queued` in the DB,
+ *     we promote it to `now_playing` and never pick it again as "next" — avoids
+ *     appending the same URI to Spotify's queue (repeat loop).
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -121,18 +124,19 @@ async function tick() {
   // Spotify moved past our jukebox track → mark DB row `played` so it leaves the queue list.
   await finalizeEndedNowPlaying(player, playerTrackId, player.item?.type)
 
-  // Reconcile statuses: if Spotify is now playing a track that matches a
-  // queue row we previously enqueued, flip that row to now_playing and bury
-  // the previous row.
+  // Reconcile: Spotify is on this track — if DB still says `queued` or
+  // `enqueued_spotify`, promote to `now_playing` and bury the previous jukebox
+  // track. (Queued-only rows happen after manual play / drift; without this we
+  // would enqueue the same URI again and Spotify repeats the song.)
   if (playerTrackId) {
     const { data: matching } = await supabase
       .from('song_queue')
       .select('id, track_id, status')
       .eq('track_id', playerTrackId)
-      .in('status', ['enqueued_spotify', 'now_playing'])
+      .in('status', ['queued', 'enqueued_spotify', 'now_playing'])
       .maybeSingle()
 
-    if (matching && matching.status === 'enqueued_spotify') {
+    if (matching && matching.status !== 'now_playing') {
       await supabase
         .from('song_queue')
         .update({ status: 'played', played_at: new Date().toISOString() })
@@ -198,10 +202,14 @@ async function tick() {
       .maybeSingle()
 
     if (!alreadyEnqueued) {
-      const { data: next } = await supabase
+      let nextQuery = supabase
         .from('song_queue')
         .select('id, track_uri, track_name, artist')
         .eq('status', 'queued')
+      if (playerTrackId) {
+        nextQuery = nextQuery.neq('track_id', playerTrackId)
+      }
+      const { data: next } = await nextQuery
         .order('votes', { ascending: false })
         .order('first_added_at', { ascending: true })
         .limit(1)
@@ -308,7 +316,21 @@ async function finalizeEndedNowPlaying(player, playerTrackId, itemType) {
 
   if (playerTrackId && playerTrackId !== dbPlaying.track_id) {
     log(`Marked queue row played (Spotify now on another track): ${dbPlaying.track_id}`)
+    await demoteOrphanEnqueuedSpotify(playerTrackId)
     await markQueueRowPlayed(dbPlaying.id)
+  }
+}
+
+/** Rewind `enqueued_spotify` rows that are not the track Spotify actually moved to (skipped / radio). */
+async function demoteOrphanEnqueuedSpotify(currentTrackId) {
+  if (!currentTrackId) return
+  const { error } = await supabase
+    .from('song_queue')
+    .update({ status: 'queued', enqueued_at: null })
+    .eq('status', 'enqueued_spotify')
+    .neq('track_id', currentTrackId)
+  if (error) {
+    console.warn('[jukebox-worker] demoteOrphanEnqueuedSpotify failed:', error.message)
   }
 }
 
