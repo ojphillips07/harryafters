@@ -35,6 +35,7 @@ const cameraError = ref<string | null>(null)
 const cameraReady = ref(false)
 const usingFallback = ref(false)
 const submitting = ref(false)
+const admitModalOpen = ref(false)
 const lastScanned = ref<{ id: string, at: number } | null>(null)
 
 const videoRef = ref<HTMLVideoElement | null>(null)
@@ -52,6 +53,15 @@ const JSQR_FRAME_STRIDE = 2
 /** Max width for jsQR canvas — full-res decode was the main bottleneck. */
 const JSQR_MAX_WIDTH = 480
 
+const SCROLL_LOCK_CLASS = 'ha-door-noscroll'
+let doorScrollMql: MediaQueryList | null = null
+
+function syncDoorScrollLock() {
+  if (typeof document === 'undefined') return
+  const mq = doorScrollMql ?? window.matchMedia('(max-width: 639px)')
+  document.documentElement.classList.toggle(SCROLL_LOCK_CLASS, mq.matches)
+}
+
 onMounted(() => {
   if (typeof window === 'undefined') return
   const stored = window.sessionStorage.getItem(TOKEN_KEY)
@@ -59,9 +69,17 @@ onMounted(() => {
     token.value = stored
     void startCamera()
   }
+  doorScrollMql = window.matchMedia('(max-width: 639px)')
+  doorScrollMql.addEventListener('change', syncDoorScrollLock)
+  syncDoorScrollLock()
 })
 
 onBeforeUnmount(() => {
+  if (doorScrollMql) {
+    doorScrollMql.removeEventListener('change', syncDoorScrollLock)
+    doorScrollMql = null
+  }
+  document.documentElement.classList.remove(SCROLL_LOCK_CLASS)
   stopCamera()
 })
 
@@ -185,7 +203,7 @@ function decodeJsQrFromVideo(video: HTMLVideoElement): string | null {
 async function scanTick() {
   if (!cameraReady.value) return
 
-  if (submitting.value) {
+  if (submitting.value || admitModalOpen.value) {
     scheduleScan()
     return
   }
@@ -230,7 +248,7 @@ async function scanTick() {
 }
 
 async function handleScan(payload: string) {
-  if (!payload || submitting.value) return
+  if (!payload || submitting.value || admitModalOpen.value) return
   if (!UUID_RE.test(payload)) return
 
   const now = Date.now()
@@ -243,6 +261,7 @@ async function handleScan(payload: string) {
 }
 
 async function submitManual() {
+  if (admitModalOpen.value) return
   const v = manualId.value.trim()
   if (!v) return
   if (!UUID_RE.test(v)) {
@@ -266,6 +285,9 @@ async function submitCheckIn(ticketId: string) {
       status: res.status,
       ticket: res.ticket,
       at: Date.now()
+    }
+    if (res.status === 'ok') {
+      admitModalOpen.value = true
     }
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(res.status === 'ok' ? 80 : [40, 60, 40])
@@ -322,12 +344,30 @@ function formattedUsedAt(iso: string | null | undefined) {
 }
 </script>
 
+<style>
+/* Phone-only: lock page scroll (rubber-band / overflow) while door scanner is open */
+html.ha-door-noscroll,
+html.ha-door-noscroll body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  height: 100%;
+  width: 100%;
+  touch-action: manipulation;
+}
+html.ha-door-noscroll body {
+  position: fixed;
+  inset: 0;
+}
+</style>
+
 <template>
-  <div class="relative min-h-screen overflow-clip bg-gray-950 text-gray-100">
+  <div
+    class="relative bg-gray-950 text-gray-100 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:overflow-hidden sm:min-h-screen sm:overflow-clip"
+  >
     <div class="pointer-events-none absolute -left-[20%] -top-[20%] h-[60%] w-[60%] bg-primary-500/10 blur-[120px] rounded-full" />
     <div class="pointer-events-none absolute -right-[20%] -bottom-[20%] h-[60%] w-[60%] bg-accent-500/10 blur-[120px] rounded-full" />
 
-    <section class="relative isolate min-h-screen py-10 px-4 sm:px-6">
+    <section class="relative isolate max-sm:h-full max-sm:min-h-0 max-sm:overflow-hidden max-sm:py-5 min-h-screen py-10 px-4 sm:px-6">
       <div class="w-full max-w-md mx-auto space-y-6">
         <header class="text-center">
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium">
@@ -435,50 +475,77 @@ function formattedUsedAt(iso: string | null | undefined) {
             </UButton>
           </form>
 
-          <!-- Result panel -->
+          <!-- Result panel (full detail for non-admit; admit uses modal) -->
           <div
             class="rounded-3xl border p-6 transition-colors"
             :class="resultClass"
           >
             <template v-if="lastResult">
-              <div class="flex items-center gap-3">
-                <UIcon
-                  :name="resultIcon"
-                  class="w-7 h-7"
-                />
-                <div class="font-[family-name:Bebas_Neue,sans-serif] text-3xl tracking-wider">
-                  {{ resultHeading }}
-                </div>
-              </div>
-              <div
-                v-if="lastResult.ticket"
-                class="mt-3"
-              >
-                <div class="text-xl font-bold text-white">
-                  {{ lastResult.ticket.name }}
-                </div>
-                <div class="mt-1 font-mono text-[11px] break-all opacity-75">
-                  {{ lastResult.ticket.id }}
+              <template v-if="lastResult.status === 'ok'">
+                <div
+                  v-if="admitModalOpen"
+                  class="text-center text-sm text-gray-400 py-1"
+                >
+                  Admit popup open — dismiss it to scan the next guest.
                 </div>
                 <div
-                  v-if="lastResult.ticket.usedAt"
-                  class="mt-1 text-sm"
+                  v-else
+                  class="flex items-center gap-3"
                 >
-                  Used at {{ formattedUsedAt(lastResult.ticket.usedAt) }}
+                  <UIcon
+                    name="i-lucide-check-circle"
+                    class="w-7 h-7 shrink-0"
+                  />
+                  <div>
+                    <div class="font-[family-name:Bebas_Neue,sans-serif] text-xl tracking-wider text-emerald-200">
+                      Last admit
+                    </div>
+                    <div class="text-lg font-bold text-white mt-0.5">
+                      {{ lastResult.ticket?.name }}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div
-                v-else-if="lastResult.message"
-                class="mt-3 text-sm"
-              >
-                {{ lastResult.message }}
-              </div>
-              <div
-                v-else-if="lastResult.status === 'not_found'"
-                class="mt-3 text-sm"
-              >
-                That ticket isn't in our system. Check the QR or try manual entry.
-              </div>
+              </template>
+              <template v-else>
+                <div class="flex items-center gap-3">
+                  <UIcon
+                    :name="resultIcon"
+                    class="w-7 h-7"
+                  />
+                  <div class="font-[family-name:Bebas_Neue,sans-serif] text-3xl tracking-wider">
+                    {{ resultHeading }}
+                  </div>
+                </div>
+                <div
+                  v-if="lastResult.ticket"
+                  class="mt-3"
+                >
+                  <div class="text-xl font-bold text-white">
+                    {{ lastResult.ticket.name }}
+                  </div>
+                  <div class="mt-1 font-mono text-[11px] break-all opacity-75">
+                    {{ lastResult.ticket.id }}
+                  </div>
+                  <div
+                    v-if="lastResult.ticket.usedAt"
+                    class="mt-1 text-sm"
+                  >
+                    Used at {{ formattedUsedAt(lastResult.ticket.usedAt) }}
+                  </div>
+                </div>
+                <div
+                  v-else-if="lastResult.message"
+                  class="mt-3 text-sm"
+                >
+                  {{ lastResult.message }}
+                </div>
+                <div
+                  v-else-if="lastResult.status === 'not_found'"
+                  class="mt-3 text-sm"
+                >
+                  That ticket isn't in our system. Check the QR or try manual entry.
+                </div>
+              </template>
             </template>
             <template v-else>
               <div class="flex items-center gap-3 text-gray-300">
@@ -490,6 +557,55 @@ function formattedUsedAt(iso: string | null | undefined) {
               </div>
             </template>
           </div>
+
+          <UModal
+            v-model:open="admitModalOpen"
+            :dismissible="false"
+            :close="false"
+            :ui="{
+              overlay: 'backdrop-blur-sm bg-black/70',
+              content:
+                'max-w-md border-2 border-emerald-500/50 bg-gray-950 shadow-2xl shadow-emerald-950/50 sm:max-w-lg'
+            }"
+          >
+            <template #title>
+              <span class="flex items-center gap-2 text-2xl font-black uppercase tracking-wider text-emerald-400 sm:text-3xl">
+                <UIcon
+                  name="i-lucide-check-circle"
+                  class="w-8 h-8 shrink-0"
+                />
+                Admit
+              </span>
+            </template>
+            <template #body>
+              <div
+                v-if="lastResult?.ticket && lastResult.status === 'ok'"
+                class="space-y-4"
+              >
+                <p class="text-center text-3xl font-bold leading-tight text-white sm:text-4xl">
+                  {{ lastResult.ticket.name }}
+                </p>
+                <p class="font-mono text-center text-[11px] break-all text-gray-500">
+                  {{ lastResult.ticket.id }}
+                </p>
+                <p
+                  v-if="lastResult.ticket.usedAt"
+                  class="text-center text-sm text-gray-400"
+                >
+                  Checked in {{ formattedUsedAt(lastResult.ticket.usedAt) }}
+                </p>
+                <UButton
+                  color="primary"
+                  size="xl"
+                  block
+                  class="mt-6 font-bold rounded-2xl"
+                  @click="admitModalOpen = false"
+                >
+                  Dismiss
+                </UButton>
+              </div>
+            </template>
+          </UModal>
         </template>
 
         <div class="text-center">
