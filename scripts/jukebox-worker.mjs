@@ -26,10 +26,12 @@
  *      (`--env-file` is built into Node 20+; no extra dependency needed.)
  *
  * Spotify quirks the loop must handle:
- *   - `POST /me/player/queue` is append-only. Once a track is forwarded we
- *     can't reorder or remove it on Spotify's side. So we forward exactly one
- *     track at a time, only ~6s before the current one ends, so guests can
- *     keep voting up rivals right until the lookahead window.
+ *   - `POST /me/player/queue` is append-only. We forward one track at a time,
+ *     only ~6s before the current one ends. To avoid double-adds (two ticks,
+ *     two PM2 copies, or stale demotion + retry), we:
+ *       1) Atomically claim the DB row (`queued` → `enqueued_spotify`) *before*
+ *          calling Spotify, so only one winner can POST.
+ *       2) `GET /me/player/queue` — if the URI is already next/current, skip POST.
  *   - Playback control requires an active device. If `GET /me/player` returns
  *     204 / no device, we idle until the host hits play on a device.
  *   - Premium-only. `403 PREMIUM_REQUIRED` will surface on play/queue calls.
@@ -241,13 +243,17 @@ async function tick() {
         .maybeSingle()
 
       if (next) {
-        log(`Forwarding to Spotify queue: ${next.track_name} — ${next.artist}`)
-        const ok = await spotifyEnqueue(accessToken, next.track_uri)
-        if (ok) {
-          await supabase
-            .from('song_queue')
-            .update({ status: 'enqueued_spotify', enqueued_at: new Date().toISOString() })
-            .eq('id', next.id)
+        const claimed = await claimQueuedRowForSpotify(next.id)
+        if (claimed) {
+          const uri = claimed.track_uri
+          const alreadyThere = await spotifyUriAlreadyInPlaybackQueue(accessToken, uri)
+          if (alreadyThere) {
+            log(`Skipping Spotify POST — URI already in playback queue: ${claimed.track_name}`)
+          } else {
+            log(`Forwarding to Spotify queue: ${claimed.track_name} — ${claimed.artist}`)
+            const ok = await spotifyEnqueue(accessToken, uri)
+            if (!ok) await revertClaimToQueued(claimed.id)
+          }
         }
       }
     }
@@ -410,6 +416,68 @@ async function fetchPlayer(accessToken) {
     throw new Error(`GET /me/player failed (${res.status}): ${text.slice(0, 200)}`)
   }
   return await res.json()
+}
+
+/** Single-flight guard: only one process/tick can move `queued` → `enqueued_spotify`. */
+async function claimQueuedRowForSpotify(rowId) {
+  const enqueuedAt = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('song_queue')
+    .update({ status: 'enqueued_spotify', enqueued_at: enqueuedAt })
+    .eq('id', rowId)
+    .eq('status', 'queued')
+    .select('id, track_uri, track_name, artist')
+    .maybeSingle()
+
+  if (error) {
+    console.warn('[jukebox-worker] claimQueuedRowForSpotify:', error.message)
+    return null
+  }
+  return data ?? null
+}
+
+async function revertClaimToQueued(rowId) {
+  const { error } = await supabase
+    .from('song_queue')
+    .update({ status: 'queued', enqueued_at: null })
+    .eq('id', rowId)
+    .eq('status', 'enqueued_spotify')
+
+  if (error) {
+    console.warn('[jukebox-worker] revertClaimToQueued:', error.message)
+  }
+}
+
+function normalizeSpotifyUri(uri) {
+  return String(uri ?? '').trim()
+}
+
+/** True if Spotify already has this track as current or queued (avoids duplicate POST). */
+async function spotifyUriAlreadyInPlaybackQueue(accessToken, trackUri) {
+  const want = normalizeSpotifyUri(trackUri)
+  if (!want) return false
+
+  const res = await fetch(`${SPOTIFY_API}/me/player/queue`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  })
+  if (res.status === 204 || !res.ok) return false
+
+  let json
+  try {
+    json = await res.json()
+  } catch {
+    return false
+  }
+
+  const cur = json.currently_playing?.uri
+  if (cur && normalizeSpotifyUri(cur) === want) return true
+
+  for (const item of json.queue ?? []) {
+    const u = item?.uri
+    if (u && normalizeSpotifyUri(u) === want) return true
+  }
+
+  return false
 }
 
 async function spotifyEnqueue(accessToken, uri) {
