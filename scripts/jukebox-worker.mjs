@@ -39,12 +39,22 @@
  *   - If Spotify is already playing a track that is still `queued` in the DB,
  *     we promote it to `now_playing` and never pick it again as "next" — avoids
  *     appending the same URI to Spotify's queue (repeat loop).
+ *   - Spotify **repeat-one** blocks the next queued track forever (same URI keeps
+ *     playing). We turn repeat **off** periodically unless JUKEBOX_ALLOW_SPOTIFY_REPEAT=1.
+ *   - If an `enqueued_spotify` row never becomes current (repeat / skip / drift),
+ *     we demote it back to `queued` after a short timeout outside the handoff window
+ *     so new adds are not stuck behind a phantom "already enqueued" gate.
  */
 
 import { createClient } from '@supabase/supabase-js'
 
 const POLL_MS = Number(process.env.JUKEBOX_POLL_MS ?? 3000)
 const LOOKAHEAD_MS = Number(process.env.JUKEBOX_LOOKAHEAD_MS ?? 6000)
+/** Demote orphan enqueued_spotify after this age (ms) when not in handoff zone */
+const STALE_ENQUEUE_MIN_MS = Number(process.env.JUKEBOX_STALE_ENQUEUE_MS ?? 18_000)
+/** Extra cushion beyond LOOKAHEAD where we still treat playback as "about to hand off" */
+const HANDOFF_BUFFER_MS = Number(process.env.JUKEBOX_HANDOFF_BUFFER_MS ?? 12_000)
+const REPEAT_OFF_INTERVAL_MS = Number(process.env.JUKEBOX_REPEAT_OFF_INTERVAL_MS ?? 40_000)
 const SPOTIFY_API = 'https://api.spotify.com/v1'
 const SPOTIFY_TOKEN = 'https://accounts.spotify.com/api/token'
 
@@ -61,6 +71,10 @@ const supabase = createClient(normaliseSupabaseUrl(env.supabaseUrl), env.supabas
 
 let cachedAccessToken = null // { token, expiresAt }
 let cachedRefreshToken = null
+
+/** Last progress sample per tick — detects repeat-one / seek-back on same track */
+let lastProgressSample = { trackId: null, progressMs: -1 }
+let lastRepeatOffAt = 0
 
 let running = true
 process.on('SIGINT', () => { running = false; log('Stopping…') })
@@ -121,6 +135,15 @@ async function tick() {
   const progressMs = player.progress_ms ?? 0
   const durationMs = currentTrack?.duration_ms ?? 0
 
+  await maybeSpotifyRepeatOff(accessToken)
+
+  if (consumePlaybackRewind(playerTrackId, progressMs)) {
+    log('Same track rewound (repeat/seek) — repeat off + clearing orphan enqueued rows')
+    await spotifyRepeatOff(accessToken)
+    lastRepeatOffAt = Date.now()
+    if (playerTrackId) await demoteOrphanEnqueuedSpotify(playerTrackId)
+  }
+
   // Spotify moved past our jukebox track → mark DB row `played` so it leaves the queue list.
   await finalizeEndedNowPlaying(player, playerTrackId, player.item?.type)
 
@@ -148,6 +171,8 @@ async function tick() {
         .eq('id', matching.id)
     }
   }
+
+  await demoteStaleEnqueuedSpotify(playerTrackId, progressMs, durationMs)
 
   // If we have a now_playing row in the DB, surface it on the snapshot. We
   // prefer the DB row because it carries the album_image we showed the
@@ -409,6 +434,76 @@ async function spotifyNext(accessToken) {
     const text = await res.text().catch(() => '')
     console.warn(`[jukebox-worker] /next ${res.status}: ${text.slice(0, 200)}`)
   }
+}
+
+/** Repeat-one prevents the Spotify queue from advancing; jukebox relies on linear playback. */
+async function spotifyRepeatOff(accessToken) {
+  const res = await fetch(`${SPOTIFY_API}/me/player/repeat?state=off`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${accessToken}` }
+  })
+  if (!res.ok && res.status !== 204) {
+    const text = await res.text().catch(() => '')
+    console.warn(`[jukebox-worker] repeat off ${res.status}: ${text.slice(0, 200)}`)
+  }
+}
+
+async function maybeSpotifyRepeatOff(accessToken) {
+  if (process.env.JUKEBOX_ALLOW_SPOTIFY_REPEAT === '1') return
+  if (Date.now() - lastRepeatOffAt < REPEAT_OFF_INTERVAL_MS) return
+  lastRepeatOffAt = Date.now()
+  await spotifyRepeatOff(accessToken)
+}
+
+/**
+ * `enqueued_spotify` for track Y while Spotify still plays X blocks lookahead forever.
+ * When we're clearly not in the X→Y handoff window and Y has waited too long, demote Y.
+ */
+async function demoteStaleEnqueuedSpotify(playerTrackId, progressMs, durationMs) {
+  const { data: rows, error } = await supabase
+    .from('song_queue')
+    .select('id, track_id, enqueued_at')
+    .eq('status', 'enqueued_spotify')
+
+  if (error || !rows?.length) return
+
+  const remaining = durationMs > 0 ? durationMs - progressMs : Number.POSITIVE_INFINITY
+  const inHandoffZone = remaining <= LOOKAHEAD_MS + HANDOFF_BUFFER_MS
+
+  for (const row of rows) {
+    if (!playerTrackId || row.track_id === playerTrackId) continue
+
+    const enqueuedAt = row.enqueued_at ? new Date(row.enqueued_at).getTime() : 0
+    const ageMs = Date.now() - enqueuedAt
+    if (ageMs < STALE_ENQUEUE_MIN_MS) continue
+    if (inHandoffZone) continue
+
+    await supabase
+      .from('song_queue')
+      .update({ status: 'queued', enqueued_at: null })
+      .eq('id', row.id)
+
+    log(`Demoted stale enqueued_spotify → queued (${row.track_id}, waited ${Math.round(ageMs / 1000)}s)`)
+  }
+}
+
+function consumePlaybackRewind(trackId, progressMs) {
+  if (!trackId || typeof progressMs !== 'number') {
+    lastProgressSample = { trackId: null, progressMs: -1 }
+    return false
+  }
+
+  let rewound = false
+  if (
+    lastProgressSample.trackId === trackId &&
+    lastProgressSample.progressMs >= 0 &&
+    progressMs + 3000 < lastProgressSample.progressMs
+  ) {
+    rewound = true
+  }
+
+  lastProgressSample = { trackId, progressMs }
+  return rewound
 }
 
 /* ----- helpers ----- */
