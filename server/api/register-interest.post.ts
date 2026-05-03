@@ -23,7 +23,12 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<RegisterBody>(event)
 
   if (typeof body?.fax_extension === 'string' && body.fax_extension.trim().length > 0) {
-    return { ok: true, alreadyRegistered: false }
+    return {
+      ok: true,
+      alreadyRegistered: false,
+      confirmationEmailed: false,
+      confirmationEmailIssue: null
+    }
   }
 
   const name = typeof body?.name === 'string' ? body.name.trim() : ''
@@ -66,7 +71,18 @@ export default defineEventHandler(async (event) => {
   const mailer = getResendApi()
   const resendFrom = String(config.resendFrom ?? '').trim()
 
-  if (!alreadyRegistered && mailer && resendFrom) {
+  let confirmationEmailed = false
+  let confirmationEmailIssue: string | null = null
+
+  if (alreadyRegistered) {
+    /* No confirmation email on duplicate — they already registered once. */
+  } else if (!mailer) {
+    confirmationEmailIssue = 'missing_api_key'
+    console.warn('[register-interest] NUXT_RESEND_API_KEY not set — confirmation email skipped')
+  } else if (!resendFrom) {
+    confirmationEmailIssue = 'missing_from'
+    console.warn('[register-interest] Set NUXT_RESEND_FROM to send confirmation emails')
+  } else {
     try {
       const displayName = name.split(/\s+/)[0] || name
       const { subject, html, text } = registrationConfirmationContent(displayName)
@@ -78,13 +94,17 @@ export default defineEventHandler(async (event) => {
         text
       })
       if (sent.error) {
+        const msg = typeof sent.error.message === 'string' ? sent.error.message : 'Resend send failed'
+        confirmationEmailIssue = msg
         console.warn('[register-interest] confirmation email failed', sent.error)
+      } else {
+        confirmationEmailed = true
       }
     } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Resend send failed'
+      confirmationEmailIssue = msg
       console.warn('[register-interest] confirmation email failed', err)
     }
-  } else if (!alreadyRegistered && mailer && !resendFrom) {
-    console.warn('[register-interest] Set NUXT_RESEND_FROM to send confirmation emails')
   }
 
   try {
@@ -108,5 +128,10 @@ export default defineEventHandler(async (event) => {
     console.warn('[register-interest] Resend contacts.create failed', err)
   }
 
-  return { ok: true, alreadyRegistered }
+  return {
+    ok: true,
+    alreadyRegistered,
+    confirmationEmailed,
+    confirmationEmailIssue
+  }
 })

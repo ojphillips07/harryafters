@@ -17,6 +17,10 @@ const registered = ref(false)
 const loading = ref(false)
 const errorMessage = ref<string | null>(null)
 const alreadyRegistered = ref(false)
+/** True only when Resend accepted the confirmation send (same request). */
+const confirmationEmailed = ref(false)
+/** When email was not sent for a new signup, server hint (e.g. unverified domain). */
+const confirmationEmailIssue = ref<string | null>(null)
 
 const form = reactive({
   name: '',
@@ -28,8 +32,15 @@ const form = reactive({
 const onRegister = async () => {
   loading.value = true
   errorMessage.value = null
+  confirmationEmailed.value = false
+  confirmationEmailIssue.value = null
   try {
-    const result = await $fetch<{ ok: boolean; alreadyRegistered: boolean }>(
+    const result = await $fetch<{
+      ok: boolean
+      alreadyRegistered: boolean
+      confirmationEmailed: boolean
+      confirmationEmailIssue: string | null
+    }>(
       '/api/register-interest',
       {
         method: 'POST',
@@ -41,6 +52,8 @@ const onRegister = async () => {
       }
     )
     alreadyRegistered.value = result.alreadyRegistered
+    confirmationEmailed.value = result.confirmationEmailed
+    confirmationEmailIssue.value = result.confirmationEmailIssue
     registered.value = true
   } catch (err: unknown) {
     errorMessage.value = getRegisterErrorMessage(err)
@@ -257,9 +270,33 @@ const galleryImages = [
             We already had {{ form.email }} down. You’re good — we’ll email you when <EventBrandName typography="inherit" /> tickets go on sale.
           </template>
           <template v-else>
-            Thanks {{ form.name.split(' ')[0] }}! You’re on the list for ticket updates — we’ll email {{ form.email }} when <EventBrandName typography="inherit" /> tickets go on sale.
+            Thanks {{ form.name.split(' ')[0] }}! You’re on the list for ticket updates.
+            <span v-if="confirmationEmailed" class="block mt-3 text-gray-300">
+              We’ve sent a confirmation to <span class="text-white font-semibold">{{ form.email }}</span> — check inbox and spam. We’ll use the same address when <EventBrandName typography="inherit" /> tickets go on sale.
+            </span>
+            <span v-else class="block mt-3 text-gray-300">
+              We’ll email <span class="text-white font-semibold">{{ form.email }}</span> when <EventBrandName typography="inherit" /> tickets go on sale.
+            </span>
           </template>
         </p>
+        <div
+          v-if="!alreadyRegistered && !confirmationEmailed && confirmationEmailIssue"
+          class="mt-5 rounded-2xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-left text-sm text-amber-100"
+        >
+          <p class="font-semibold text-amber-50">
+            Confirmation email wasn’t sent
+          </p>
+          <p v-if="confirmationEmailIssue === 'missing_api_key'" class="mt-1 text-amber-100/90">
+            The server doesn’t have <code class="text-amber-200">NUXT_RESEND_API_KEY</code> set (or the deploy wasn’t restarted after adding it).
+          </p>
+          <p v-else-if="confirmationEmailIssue === 'missing_from'" class="mt-1 text-amber-100/90">
+            Set <code class="text-amber-200">NUXT_RESEND_FROM</code> to a verified sender, e.g.
+            <code class="text-amber-200">Harry Afters &lt;hello@send.yourdomain&gt;</code> — it must match a domain you’ve verified in Resend.
+          </p>
+          <p v-else class="mt-1 text-amber-100/90 break-words">
+            {{ confirmationEmailIssue }}
+          </p>
+        </div>
         <UButton variant="ghost" class="mt-6" @click="registered = false">Back</UButton>
       </div>
     </section>
